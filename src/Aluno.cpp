@@ -1,7 +1,5 @@
 #include "Aluno.hpp"
-
 namespace ufmg_carona {
-    Aluno::Aluno(std::string nome, std::string cpf, std::string email, std::string senha, Genero genero, std::string curso)
-        : Usuario(nome, cpf, email, senha, genero), _curso(curso) {}
+    Aluno::Aluno(std::string n, std::string c, std::string e, std::string s, Genero g, std::string cur) : Usuario(n, c, e, s, g), _curso(cur) {}
     std::string Aluno::get_vinculo() const { return "Aluno do curso de " + _curso; }
 }

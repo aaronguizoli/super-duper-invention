@@ -7,7 +7,7 @@
 namespace ufmg_carona {
     int Carona::_proximo_id = 1;
 
-    // A ORDEM NA LISTA DE INICIALIZAÇÃO AGORA BATE COM A ORDEM DE DECLARAÇÃO NO .HPP
+    // A ORDEM NA LISTA DE INICIALIZAÇÃO FOI CORRIGIDA PARA BATER COM A ORDEM DE DECLARAÇÃO NO .HPP
     Carona::Carona(std::string origem, std::string destino, std::string data, std::shared_ptr<Usuario> motorista, bool apenas_mulheres, TipoCarona tipo)
         : _id(gerar_proximo_id()), 
           _origem(origem), 

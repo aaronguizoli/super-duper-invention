@@ -1,8 +1,6 @@
 #include "Avaliacao.hpp"
 #include "Usuario.hpp"
-
 namespace ufmg_carona {
-    Avaliacao::Avaliacao(int nota, std::string comentario, std::shared_ptr<Usuario> avaliador, std::shared_ptr<Usuario> avaliado)
-        : _nota(nota), _comentario(comentario), _avaliador(avaliador), _avaliado(avaliado) {}
+    Avaliacao::Avaliacao(int n, std::string c, std::shared_ptr<Usuario> av, std::shared_ptr<Usuario> ad) : _nota(n), _comentario(c), _avaliador(av), _avaliado(ad) {}
     int Avaliacao::get_nota() const { return _nota; }
 }

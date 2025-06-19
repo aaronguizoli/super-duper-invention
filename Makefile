@@ -1,47 +1,37 @@
-# Makefile Final
-# Conceitos: aula17-modularizacao.pdf
-# Requisito do trabalho: PDS2-TP-2025-1.pdf
+# Makefile Final com Estrutura de Diretórios Profissional
 
-CXX = C:/msys64/mingw64/bin/g++.exe
+CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude
 LDFLAGS = -static-libgcc -static-libstdc++
 
+# --- Estrutura de Diretórios ---
 INCLUDE_DIR = include
 SRC_DIR = src
-BUILD_DIR = build
+OBJ_DIR = obj
+BIN_DIR = bin
 
-SOURCES = $(SRC_DIR)/main.cpp \
-          $(SRC_DIR)/Sistema.cpp \
-          $(SRC_DIR)/Usuario.cpp \
-          $(SRC_DIR)/Aluno.cpp \
-          $(SRC_DIR)/Funcionario.cpp \
-          $(SRC_DIR)/Carona.cpp \
-          $(SRC_DIR)/CaronaFactory.cpp \
-          $(SRC_DIR)/Veiculo.cpp \
-          $(SRC_DIR)/Rotina.cpp \
-          $(SRC_DIR)/Pagamento.cpp \
-          $(SRC_DIR)/Solicitacao.cpp \
-          $(SRC_DIR)/Avaliacao.cpp \
-          $(SRC_DIR)/Notificacao.cpp
+# --- Arquivos ---
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+OBJECTS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SOURCES))
+EXECUTABLE = $(BIN_DIR)/app_carona
 
-OBJECTS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SOURCES))
-
-EXECUTABLE = app_carona
-
+# --- Regras de Compilação ---
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
+	@mkdir -p $(BIN_DIR)
 	@echo "Ligando o programa..."
 	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE) $(OBJECTS) $(LDFLAGS)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p build
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(OBJ_DIR)
 	@echo "Compilando $<..."
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# --- Regras de Limpeza e Execução ---
 clean:
 	@echo "Limpando arquivos de build..."
-	rm -rf $(BUILD_DIR) *.o $(EXECUTABLE)
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
 
 run: all
 	@echo "Executando o programa..."

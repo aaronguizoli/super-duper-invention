@@ -1,6 +1,5 @@
 #ifndef SISTEMA_HPP
 #define SISTEMA_HPP
-
 #include <vector>
 #include <string>
 #include <memory>
@@ -8,8 +7,6 @@
 #include "Carona.hpp"
 
 namespace ufmg_carona {
-    class Solicitacao; // Forward Declaration
-
     class Sistema {
     private:
         std::vector<std::shared_ptr<Usuario>> _usuarios;
@@ -32,7 +29,7 @@ namespace ufmg_carona {
 
     public:
         Sistema();
-        ~Sistema(); // <-- CORREÇÃO: Apenas a declaração, sem corpo {} ou =default
+        ~Sistema();
         void executar();
     };
 }

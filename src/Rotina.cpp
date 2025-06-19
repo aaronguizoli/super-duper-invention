@@ -1,7 +1,5 @@
 #include "Rotina.hpp"
-
 namespace ufmg_carona {
-    Rotina::Rotina(DiaDaSemana dia, const std::string& horario, const std::string& local, const std::string& destino)
-        : _dia(dia), _horario_saida(horario), _local_saida_padrao(local), _destino_final(destino) {}
+    Rotina::Rotina(DiaDaSemana dia, const std::string& h, const std::string& l, const std::string& d) : _dia(dia), _horario_saida(h), _local_saida_padrao(l), _destino_final(d) {}
     Rotina::Rotina() : _dia(DiaDaSemana::DOMINGO) {}
 }

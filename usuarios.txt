@@ -1,3 +1,2 @@
 11122233344;Ana Souza;ana@ufmg.br;senha123;1;aluno;Ciencia da Computacao
 22233344455;Bruno Gomes;bruno@ufmg.br;senha123;0;funcionario;DCC
-33344455566;Carla Dias;carla@ufmg.br;senha123;1;aluno;Engenharia de Software
