@@ -152,6 +152,7 @@ namespace ufmg_carona {
         if (arquivo_usuarios.is_open()) {
             std::string linha, cpf, nome, email, senha, vinculo, detalhe, gen_str;
             while (std::getline(arquivo_usuarios, linha)) {
+                if (linha.empty()) continue;
                 std::stringstream ss(linha);
                 std::getline(ss, cpf, ';');
                 std::getline(ss, nome, ';');
@@ -160,6 +161,8 @@ namespace ufmg_carona {
                 std::getline(ss, gen_str, ';');
                 std::getline(ss, vinculo, ';');
                 std::getline(ss, detalhe);
+                
+
                 Genero gen = static_cast<Genero>(std::stoi(gen_str));
                 if (vinculo == "aluno") _usuarios.push_back(std::make_shared<Aluno>(nome, cpf, email, senha, gen, detalhe));
                 else if (vinculo == "funcionario") _usuarios.push_back(std::make_shared<Funcionario>(nome, cpf, email, senha, gen, detalhe));
@@ -179,6 +182,10 @@ namespace ufmg_carona {
                 auto motorista_ptr = buscar_usuario_por_cpf(cpf_motorista);
                 if (motorista_ptr) {
                     if (!motorista_ptr->is_motorista()) motorista_ptr->cadastrar_veiculo(Veiculo("QWE-5678", "VW", "Gol", "Prata", 5));
+                    if (apenas_mulheres_str.empty()) {
+                        std::cerr << "Erro: apenas_mulheres_str vazio para carona: " << origem << " -> " << destino << std::endl;
+                        continue;
+                    }
                     bool apenas_mulheres = (std::stoi(apenas_mulheres_str) == 1);
                     _caronas.push_back(CaronaFactory::criar_carona(origem, destino, data, motorista_ptr, apenas_mulheres, TipoCarona::AGENDADA));
                 }
