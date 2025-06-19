@@ -37,6 +37,9 @@ namespace ufmg_carona {
             else if (comando == "perfil") _usuario_logado->imprimir_perfil();
             else if (comando == "oferecer_carona") fluxo_oferecer_carona();
             else if (comando == "buscar_caronas") fluxo_buscar_caronas();
+            else if (comando == "solicitar_carona") fluxo_solicitar_carona();
+            else if (comando == "gerenciar_solicitacoes") fluxo_gerenciar_solicitacoes();
+            else if (comando == "status_caronas") fluxo_status_caronas();
             else if (comando == "cadastrar_veiculo") fluxo_cadastrar_veiculo();
             else throw ComandoInvalidoException(comando);
         }
@@ -126,7 +129,12 @@ namespace ufmg_carona {
 
     void Sistema::exibir_menu() {
         if (_usuario_logado) {
-            std::cout << "\nLogado como " << _usuario_logado->get_nome() << " | Comandos: perfil, buscar_caronas, oferecer_carona, cadastrar_veiculo, logout, sair" << std::endl;
+            std::cout << "\nLogado como " << _usuario_logado->get_nome() << std::endl;
+            if (_usuario_logado->is_motorista()) {
+                std::cout << "Comandos: perfil, buscar_caronas, solicitar_carona, oferecer_carona, gerenciar_solicitacoes, status_caronas, cadastrar_veiculo, logout, sair" << std::endl;
+            } else {
+                std::cout << "Comandos: perfil, buscar_caronas, solicitar_carona, status_caronas, cadastrar_veiculo, logout, sair" << std::endl;
+            }
         } else {
             std::cout << "\nComandos: cadastro, login, sair" << std::endl;
         }
@@ -177,5 +185,178 @@ namespace ufmg_carona {
             }
             std::cout << "-> " << _caronas.size() << " caronas carregadas." << std::endl;
         }
+    }
+
+    void Sistema::fluxo_solicitar_carona() {
+        std::cout << "\n--- Solicitar Carona ---" << std::endl;
+        if (_caronas.empty()) {
+            std::cout << "Nenhuma carona disponivel no momento." << std::endl;
+            return;
+        }
+        
+        // Exibir caronas disponíveis
+        std::cout << "Caronas disponiveis:" << std::endl;
+        for (const auto& carona : _caronas) {
+            if (carona.get_vagas_disponiveis() > 0) {
+                carona.exibir_info();
+            }
+        }
+        
+        // Solicitar ID da carona
+        int id_carona;
+        std::cout << "\nDigite o ID da carona que deseja solicitar: ";
+        std::cin >> id_carona;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        
+        Carona* carona_escolhida = buscar_carona_por_id(id_carona);
+        if (!carona_escolhida) {
+            std::cout << "Carona nao encontrada!" << std::endl;
+            return;
+        }
+        
+        if (!pode_solicitar_carona(_usuario_logado, *carona_escolhida)) {
+            return;
+        }
+        
+        // Criar solicitação
+        auto nova_solicitacao = std::make_shared<Solicitacao>(_usuario_logado, carona_escolhida);
+        _solicitacoes.push_back(nova_solicitacao);
+        carona_escolhida->adicionar_solicitacao(nova_solicitacao);
+        
+        // Enviar notificação ao motorista
+        std::string mensagem = "Nova solicitacao de carona de " + _usuario_logado->get_nome() + 
+                              " para a carona ID: " + std::to_string(id_carona);
+        enviar_notificacao(carona_escolhida->get_motorista(), mensagem);
+        
+        std::cout << "Solicitacao enviada com sucesso!" << std::endl;
+    }
+
+    void Sistema::fluxo_gerenciar_solicitacoes() {
+        if (!_usuario_logado->is_motorista()) {
+            std::cout << "Apenas motoristas podem gerenciar solicitacoes." << std::endl;
+            return;
+        }
+        
+        std::cout << "\n--- Gerenciar Solicitacoes ---" << std::endl;
+        
+        // Buscar solicitações pendentes para as caronas do motorista
+        std::vector<std::shared_ptr<Solicitacao>> solicitacoes_motorista;
+        for (const auto& solicitacao : _solicitacoes) {
+            if (solicitacao->get_carona()->get_motorista() == _usuario_logado && 
+                solicitacao->get_status() == StatusSolicitacao::PENDENTE) {
+                solicitacoes_motorista.push_back(solicitacao);
+            }
+        }
+        
+        if (solicitacoes_motorista.empty()) {
+            std::cout << "Nenhuma solicitacao pendente." << std::endl;
+            return;
+        }
+        
+        // Exibir solicitações
+        std::cout << "Solicitacoes pendentes:" << std::endl;
+        for (size_t i = 0; i < solicitacoes_motorista.size(); ++i) {
+            std::cout << "[" << (i+1) << "] ";
+            solicitacoes_motorista[i]->exibir_para_motorista();
+        }
+        
+        // Processar resposta
+        int escolha;
+        std::cout << "\nEscolha uma solicitacao para responder (0 para voltar): ";
+        std::cin >> escolha;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        
+        if (escolha == 0 || escolha > static_cast<int>(solicitacoes_motorista.size())) {
+            return;
+        }
+        
+        auto solicitacao_escolhida = solicitacoes_motorista[escolha - 1];
+        
+        char resposta;
+        std::cout << "Aceitar solicitacao? (s/n): ";
+        std::cin >> resposta;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        
+        if (resposta == 's' || resposta == 'S') {
+            solicitacao_escolhida->aceitar();
+            solicitacao_escolhida->get_carona()->adicionar_passageiro(solicitacao_escolhida->get_passageiro());
+            enviar_notificacao(solicitacao_escolhida->get_passageiro(), 
+                             "Sua solicitacao de carona foi ACEITA!");
+            std::cout << "Solicitacao aceita!" << std::endl;
+        } else {
+            solicitacao_escolhida->recusar();
+            enviar_notificacao(solicitacao_escolhida->get_passageiro(), 
+                             "Sua solicitacao de carona foi RECUSADA.");
+            std::cout << "Solicitacao recusada." << std::endl;
+        }
+    }
+
+    void Sistema::fluxo_status_caronas() {
+        std::cout << "\n--- Status das Minhas Solicitacoes ---" << std::endl;
+        
+        // Buscar solicitações do usuário logado
+        std::vector<std::shared_ptr<Solicitacao>> minhas_solicitacoes;
+        for (const auto& solicitacao : _solicitacoes) {
+            if (solicitacao->get_passageiro() == _usuario_logado) {
+                minhas_solicitacoes.push_back(solicitacao);
+            }
+        }
+        
+        if (minhas_solicitacoes.empty()) {
+            std::cout << "Voce nao fez nenhuma solicitacao de carona ainda." << std::endl;
+            return;
+        }
+        
+        for (const auto& solicitacao : minhas_solicitacoes) {
+            std::cout << "\n--- Solicitacao ---" << std::endl;
+            std::cout << "Carona: " << solicitacao->get_carona()->get_origem() 
+                      << " -> " << solicitacao->get_carona()->get_destino() << std::endl;
+            std::cout << "Data: " << solicitacao->get_carona()->get_data_hora() << std::endl;
+            std::cout << "Motorista: " << solicitacao->get_carona()->get_motorista()->get_nome() << std::endl;
+            std::cout << "Status: " << solicitacao->get_status_string() << std::endl;
+        }
+    }
+
+    Carona* Sistema::buscar_carona_por_id(int id) {
+        for (auto& carona : _caronas) {
+            if (carona.get_id() == id) {
+                return &carona;
+            }
+        }
+        return nullptr;
+    }
+
+    void Sistema::enviar_notificacao(std::shared_ptr<Usuario> usuario, const std::string& mensagem) {
+        // Por enquanto, apenas exibe a notificação no console
+        // Em uma implementação mais completa, isso seria armazenado no usuário
+        std::cout << "[NOTIFICACAO para " << usuario->get_nome() << "]: " << mensagem << std::endl;
+    }
+
+    bool Sistema::pode_solicitar_carona(std::shared_ptr<Usuario> passageiro, const Carona& carona) {
+        // Verificar se é o próprio motorista
+        if (passageiro == carona.get_motorista()) {
+            std::cout << "Voce nao pode solicitar sua propria carona!" << std::endl;
+            return false;
+        }
+        
+        // Verificar se há vagas
+        if (carona.get_vagas_disponiveis() <= 0) {
+            std::cout << "Esta carona nao possui vagas disponiveis." << std::endl;
+            return false;
+        }
+        
+        // Verificar restrição de gênero (se necessário, implementar verificação de gênero)
+        // Por enquanto, assumimos que está OK
+        
+        // Verificar se já solicitou esta carona
+        for (const auto& solicitacao : _solicitacoes) {
+            if (solicitacao->get_passageiro() == passageiro && 
+                solicitacao->get_carona()->get_id() == carona.get_id()) {
+                std::cout << "Voce ja solicitou esta carona!" << std::endl;
+                return false;
+            }
+        }
+        
+        return true;
     }
 }
