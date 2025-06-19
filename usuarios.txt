@@ -1,2 +1,2 @@
-11122233344;Ana Souza;ana@ufmg.br;senha123;1;aluno;Ciencia da Computacao
-22233344455;Bruno Gomes;bruno@ufmg.br;senha123;0;funcionario;DCC
+11122233344;Ana Souza;31987654321;01/01/2000;Rua Alfa, 123;ana@ufmg.br;senha123;1;1;aluno;Ciencia da Computacao
+22233344455;Bruno Gomes;31998765432;15/05/1985;Avenida Beta, 456;bruno@ufmg.br;senha123;0;0;funcionario;DCC

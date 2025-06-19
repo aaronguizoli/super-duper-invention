@@ -1,14 +1,24 @@
 #include "Usuario.hpp"
-#include "Avaliacao.hpp"
+#include "Avaliacao.hpp" // Certifique-se de que Avaliacao.hpp está incluído para o tipo Avaliacao*
 #include "Veiculo.hpp"
 #include <iostream>
-#include <numeric>
+#include <numeric> // Para std::accumulate
 #include <iomanip>
+// #include <memory> // Removido
 
 namespace ufmg_carona {
-    // Construtor atualizado
+    // Construtor atualizado (assinatura já foi ajustada no .hpp)
     Usuario::Usuario(std::string n, std::string c, std::string tel, std::string dt_nasc, std::string end, std::string e, std::string s, Genero g, bool deseja_motorista)
-        : _nome(n), _cpf(c), _telefone(tel), _data_nascimento(dt_nasc), _endereco(end), _email(e), _senha(s), _genero(g), _possui_veiculo(false), _deseja_oferecer_caronas(deseja_motorista) {} // NOVO: Inicializa telefone, data_nascimento, endereco e _deseja_oferecer_caronas
+        : _nome(n), _cpf(c), _email(e), _senha(s), _telefone(tel), _data_nascimento(dt_nasc), _endereco(end), _genero(g), _possui_veiculo(false), _deseja_oferecer_caronas(deseja_motorista) {}
+
+    // NOVO: Implementação do destrutor para liberar as Avaliações
+    Usuario::~Usuario() {
+        for (Avaliacao* aval : _avaliacoes_recebidas) {
+            delete aval; // Libera a memória de cada Avaliacao
+        }
+        _avaliacoes_recebidas.clear(); // Limpa o vetor
+        // std::cout << "DEBUG: Usuario " << _nome << " destruído e avaliações liberadas." << std::endl; // Para debug, pode ser removido
+    }
 
     const std::string& Usuario::get_cpf() const { return _cpf; }
     const std::string& Usuario::get_nome() const { return _nome; }
@@ -19,21 +29,24 @@ namespace ufmg_carona {
 
     double Usuario::get_media_avaliacoes() const {
         if (_avaliacoes_recebidas.empty()) return 0.0;
+        // ALTERAÇÃO CRÍTICA: Lambda ajustada para C++11.
+        // O parâmetro 'aval' agora é explicitamente 'const Avaliacao*', e não 'const auto&'.
         double soma = std::accumulate(_avaliacoes_recebidas.begin(), _avaliacoes_recebidas.end(), 0.0,
-            [](double acc, const auto& aval) { return acc + aval->get_nota(); });
+            [](double acc, const Avaliacao* aval) { return acc + aval->get_nota(); });
         return soma / _avaliacoes_recebidas.size();
     }
-    void Usuario::adicionar_avaliacao_recebida(std::shared_ptr<Avaliacao> a) { _avaliacoes_recebidas.push_back(a); }
+    // ALTERAÇÃO: De std::shared_ptr<Avaliacao> para Avaliacao*
+    void Usuario::adicionar_avaliacao_recebida(Avaliacao* a) { _avaliacoes_recebidas.push_back(a); }
 
     void Usuario::imprimir_perfil() const {
         std::cout << "\n--- Perfil de " << get_nome() << " ---" << std::endl;
         std::cout << "CPF: " << get_cpf() << std::endl;
-        std::cout << "Telefone: " << get_telefone() << std::endl;         // NOVO: Exibe telefone
-        std::cout << "Data de Nascimento: " << get_data_nascimento() << std::endl; // NOVO: Exibe data de nascimento
-        std::cout << "Endereco: " << get_endereco() << std::endl;           // NOVO: Exibe endereço
+        std::cout << "Telefone: " << get_telefone() << std::endl;
+        std::cout << "Data de Nascimento: " << get_data_nascimento() << std::endl;
+        std::cout << "Endereco: " << get_endereco() << std::endl;
         std::cout << "Vinculo: " << get_vinculo() << std::endl;
         std::cout << "Avaliacao Media: " << std::fixed << std::setprecision(1) << get_media_avaliacoes() << " estrelas" << std::endl;
-        std::cout << "Deseja oferecer caronas: " << (get_deseja_oferecer_caronas() ? "Sim" : "Nao") << std::endl; // NOVO: Exibe se deseja oferecer caronas
+        std::cout << "Deseja oferecer caronas: " << (get_deseja_oferecer_caronas() ? "Sim" : "Nao") << std::endl;
         if (is_motorista()) {
             std::cout << "Veiculo Cadastrado:" << std::endl;
             get_veiculo().exibir_info();
@@ -41,7 +54,7 @@ namespace ufmg_carona {
         std::cout << "---------------------------------" << std::endl;
     }
 
-    // NOVOS Getters
+    // Getters (sem alterações na implementação)
     const std::string& Usuario::get_telefone() const { return _telefone; }
     const std::string& Usuario::get_data_nascimento() const { return _data_nascimento; }
     const std::string& Usuario::get_endereco() const { return _endereco; }
