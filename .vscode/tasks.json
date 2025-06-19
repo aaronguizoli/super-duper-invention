@@ -1,0 +1,62 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build (make all)",
+            "type": "shell",
+            "command": "C:/msys64/usr/bin/make.exe",
+            "args": [
+                "all"
+            ],
+            "options": {
+                // ADICIONADO: Força a execução na pasta do projeto
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "C:/msys64/usr/bin/bash.exe",
+                    "args": ["--login", "-c"]
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "Run (make run)",
+            "type": "shell",
+            "command": "C:/msys64/usr/bin/make.exe",
+            "args": [
+                "run"
+            ],
+            "options": {
+                 // ADICIONADO: Força a execução na pasta do projeto
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "C:/msys64/usr/bin/bash.exe",
+                    "args": ["--login", "-c"]
+                }
+            },
+            "group": "build"
+        },
+        {
+            "label": "Clean (make clean)",
+            "type": "shell",
+            "command": "C:/msys64/usr/bin/make.exe",
+            "args": [
+                "clean"
+            ],
+             "options": {
+                 // ADICIONADO: Força a execução na pasta do projeto
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "C:/msys64/usr/bin/bash.exe",
+                    "args": ["--login", "-c"]
+                }
+            },
+            "group": "build"
+        }
+    ]
+}
