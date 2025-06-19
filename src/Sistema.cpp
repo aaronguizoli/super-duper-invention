@@ -44,26 +44,69 @@ namespace ufmg_carona {
 
     void Sistema::fluxo_cadastro() {
         std::string nome, cpf, email, senha, vinculo, detalhe;
+        std::string telefone, data_nascimento, endereco; // NOVAS VARIÁVEIS
         int gen_int;
+        char deseja_caronas_char; // NOVA VARIÁVEL
+        bool deseja_oferecer_caronas = false; // NOVA VARIÁVEL
+
+        std::string placa, marca, modelo, cor; // NOVAS VARIÁVEIS para veículo
+        int lugares; // NOVA VARIÁVEL para veículo
+
         std::cout << "--- Cadastro ---" << std::endl;
         std::cout << "Nome completo: "; std::getline(std::cin, nome);
         std::cout << "CPF: "; std::getline(std::cin, cpf);
+        std::cout << "Telefone (apenas numeros): "; std::getline(std::cin, telefone); // NOVA SOLICITAÇÃO
+        std::cout << "Data de Nascimento (DD/MM/AAAA): "; std::getline(std::cin, data_nascimento); // NOVA SOLICITAÇÃO
+        std::cout << "Endereco: "; std::getline(std::cin, endereco); // NOVA SOLICITAÇÃO
         std::cout << "Email: "; std::getline(std::cin, email);
         std::cout << "Senha: "; std::getline(std::cin, senha);
-        std::cout << "Genero (0:Masc, 1:Fem, 2:Outro): "; std::cin >> gen_int;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::cout << "Vinculo (aluno/funcionario): "; std::getline(std::cin, vinculo);
+        std::cout << "Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar): "; std::cin >> gen_int;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Limpa o buffer de entrada
+
+        // Perguntar se deseja oferecer caronas
+        std::cout << "Deseja oferecer caronas (ser motorista)? (s/n): ";
+        std::cin >> deseja_caronas_char;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Limpa o buffer
+        deseja_oferecer_caronas = (deseja_caronas_char == 's' || deseja_caronas_char == 'S');
 
         if (buscar_usuario_por_cpf(cpf)) throw AppExcecao("CPF ja cadastrado.");
 
         Genero gen = static_cast<Genero>(gen_int);
+
+        std::shared_ptr<Usuario> novo_usuario; // Cria um shared_ptr para o novo usuário
+
+        std::cout << "Vinculo (aluno/funcionario): "; std::getline(std::cin, vinculo);
         if (vinculo == "aluno") {
             std::cout << "Curso: "; std::getline(std::cin, detalhe);
-            _usuarios.push_back(std::make_shared<Aluno>(nome, cpf, email, senha, gen, detalhe));
+            // NOVO: Passando todas as informações para o construtor do Aluno
+            novo_usuario = std::make_shared<Aluno>(nome, cpf, telefone, data_nascimento, endereco, email, senha, gen, detalhe, deseja_oferecer_caronas);
         } else if (vinculo == "funcionario") {
             std::cout << "Setor: "; std::getline(std::cin, detalhe);
-            _usuarios.push_back(std::make_shared<Funcionario>(nome, cpf, email, senha, gen, detalhe));
-        } else { throw AppExcecao("Vinculo invalido."); }
+            // NOVO: Passando todas as informações para o construtor do Funcionario
+            novo_usuario = std::make_shared<Funcionario>(nome, cpf, telefone, data_nascimento, endereco, email, senha, gen, detalhe, deseja_oferecer_caronas);
+        } else {
+            throw AppExcecao("Vinculo invalido.");
+        }
+
+        // Se o usuário deseja oferecer caronas, solicitar dados do veículo
+        if (deseja_oferecer_caronas) {
+            std::cout << "--- Cadastro de Veiculo ---" << std::endl;
+            // CNH não é um atributo de Veiculo nem de Usuario neste sistema.
+            // Para adicionar CNH, você precisaria de um atributo na classe Usuario.
+            // Por enquanto, vamos manter apenas os dados do veículo.
+            std::cout << "Placa: "; std::getline(std::cin, placa);
+            std::cout << "Marca: "; std::getline(std::cin, marca);
+            std::cout << "Modelo: "; std::getline(std::cin, modelo);
+            std::cout << "Cor: "; std::getline(std::cin, cor);
+            std::cout << "Total de lugares (com motorista): "; std::cin >> lugares;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Limpa o buffer
+
+            // Cadastrar o veículo para o novo usuário
+            novo_usuario->cadastrar_veiculo(Veiculo(placa, marca, modelo, cor, lugares));
+            std::cout << "Veiculo cadastrado com sucesso durante o cadastro!" << std::endl;
+        }
+
+        _usuarios.push_back(novo_usuario); // Adiciona o novo usuário à lista
         std::cout << "Cadastro realizado com sucesso!" << std::endl;
     }
 
@@ -78,7 +121,7 @@ namespace ufmg_carona {
             std::cout << "Login bem-sucedido!" << std::endl;
         } else { throw AutenticacaoFalhouException(); }
     }
-    
+
     void Sistema::fluxo_logout() {
         _usuario_logado = nullptr;
         std::cout << "Logout efetuado." << std::endl;
@@ -142,19 +185,45 @@ namespace ufmg_carona {
     void Sistema::carregar_dados_iniciais() {
         std::ifstream arquivo_usuarios("usuarios.txt");
         if (arquivo_usuarios.is_open()) {
+            // Atualize as variáveis para carregar as novas informações
             std::string linha, cpf, nome, email, senha, vinculo, detalhe, gen_str;
+            std::string telefone, data_nascimento, endereco; // NOVAS VARIÁVEIS
+            std::string deseja_oferecer_caronas_str; // NOVA VARIÁVEL para carregar
+
             while (std::getline(arquivo_usuarios, linha)) {
                 std::stringstream ss(linha);
                 std::getline(ss, cpf, ';');
                 std::getline(ss, nome, ';');
+                std::getline(ss, telefone, ';'); // NOVO: Ler telefone
+                std::getline(ss, data_nascimento, ';'); // NOVO: Ler data_nascimento
+                std::getline(ss, endereco, ';'); // NOVO: Ler endereco
                 std::getline(ss, email, ';');
                 std::getline(ss, senha, ';');
                 std::getline(ss, gen_str, ';');
+                std::getline(ss, deseja_oferecer_caronas_str, ';'); // NOVO: Ler se deseja oferecer caronas
                 std::getline(ss, vinculo, ';');
                 std::getline(ss, detalhe);
+
                 Genero gen = static_cast<Genero>(std::stoi(gen_str));
-                if (vinculo == "aluno") _usuarios.push_back(std::make_shared<Aluno>(nome, cpf, email, senha, gen, detalhe));
-                else if (vinculo == "funcionario") _usuarios.push_back(std::make_shared<Funcionario>(nome, cpf, email, senha, gen, detalhe));
+                bool deseja_caronas_do_arquivo = (std::stoi(deseja_oferecer_caronas_str) == 1); // Converte para bool
+
+                // Crie o usuário com todas as novas informações
+                if (vinculo == "aluno") {
+                    _usuarios.push_back(std::make_shared<Aluno>(nome, cpf, telefone, data_nascimento, endereco, email, senha, gen, detalhe, deseja_caronas_do_arquivo));
+                } else if (vinculo == "funcionario") {
+                    _usuarios.push_back(std::make_shared<Funcionario>(nome, cpf, telefone, data_nascimento, endereco, email, senha, gen, detalhe, deseja_caronas_do_arquivo));
+                }
+                // Atualmente, o carregamento de veículo específico do arquivo não está implementado aqui.
+                // Se deseja_caronas_do_arquivo for true, um veículo padrão seria cadastrado
+                // para o usuário ao carregar, ou você adicionaria a lógica para ler os dados do veículo
+                // também do arquivo usuarios.txt ou de um arquivo separado.
+                if (deseja_caronas_do_arquivo) {
+                    // Por simplicidade, se o usuário deseja caronas e não tem veículo cadastrado via arquivo,
+                    // um veículo padrão é adicionado. Em um sistema real, você carregaria os dados do veículo.
+                    if (!_usuarios.back()->is_motorista()) { // Verifica se ainda não tem veículo
+                         _usuarios.back()->cadastrar_veiculo(Veiculo("PADRAO123", "Default", "Modelo", "Cor", 4));
+                    }
+                }
             }
             std::cout << "-> " << _usuarios.size() << " usuarios carregados." << std::endl;
         }
@@ -170,6 +239,8 @@ namespace ufmg_carona {
                 std::getline(ss, apenas_mulheres_str);
                 auto motorista_ptr = buscar_usuario_por_cpf(cpf_motorista);
                 if (motorista_ptr) {
+                    // A lógica aqui garante que o motorista tenha um veículo antes de criar a carona.
+                    // Isso é importante caso o arquivo de usuários não tenha fornecido os dados do veículo.
                     if (!motorista_ptr->is_motorista()) motorista_ptr->cadastrar_veiculo(Veiculo("QWE-5678", "VW", "Gol", "Prata", 5));
                     bool apenas_mulheres = (std::stoi(apenas_mulheres_str) == 1);
                     _caronas.push_back(CaronaFactory::criar_carona(origem, destino, data, motorista_ptr, apenas_mulheres, TipoCarona::AGENDADA));

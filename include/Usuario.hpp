@@ -13,13 +13,19 @@ namespace ufmg_carona {
     class Usuario {
     protected:
         std::string _nome, _cpf, _email, _senha;
+        std::string _telefone;       // NOVO: Telefone do usuário
+        std::string _data_nascimento; // NOVO: Data de nascimento do usuário
+        std::string _endereco;       // NOVO: Endereço do usuário
         Genero _genero;
         std::vector<std::shared_ptr<Avaliacao>> _avaliacoes_recebidas;
         std::vector<Notificacao> _notificacoes;
         Veiculo _veiculo;
         bool _possui_veiculo;
+        bool _deseja_oferecer_caronas; // NOVO: Flag para indicar se o usuário deseja ser motorista
+
     public:
-        Usuario(std::string nome, std::string cpf, std::string email, std::string senha, Genero genero);
+        // Construtor atualizado para incluir novas informações
+        Usuario(std::string nome, std::string cpf, std::string telefone, std::string data_nascimento, std::string endereco, std::string email, std::string senha, Genero genero, bool deseja_oferecer_caronas);
         virtual ~Usuario() = default;
         virtual std::string get_vinculo() const = 0;
         const std::string& get_cpf() const;
@@ -31,6 +37,12 @@ namespace ufmg_carona {
         double get_media_avaliacoes() const;
         void adicionar_avaliacao_recebida(std::shared_ptr<Avaliacao> avaliacao);
         void imprimir_perfil() const;
+
+        // NOVOS Getters
+        const std::string& get_telefone() const;
+        const std::string& get_data_nascimento() const;
+        const std::string& get_endereco() const;
+        bool get_deseja_oferecer_caronas() const;
     };
 }
 #endif
