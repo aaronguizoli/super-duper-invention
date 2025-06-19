@@ -8,7 +8,7 @@
 namespace ufmg_carona {
     // Construtor atualizado
     Usuario::Usuario(std::string n, std::string c, std::string tel, std::string dt_nasc, std::string end, std::string e, std::string s, Genero g, bool deseja_motorista)
-        : _nome(n), _cpf(c), _telefone(tel), _data_nascimento(dt_nasc), _endereco(end), _email(e), _senha(s), _genero(g), _possui_veiculo(false), _deseja_oferecer_caronas(deseja_motorista) {} // NOVO: Inicializa telefone, data_nascimento, endereco e _deseja_oferecer_caronas
+        : _nome(n), _cpf(c), _email(e), _senha(s), _telefone(tel), _data_nascimento(dt_nasc), _endereco(end), _genero(g), _possui_veiculo(false), _deseja_oferecer_caronas(deseja_motorista) {} // NOVO: Inicializa telefone, data_nascimento, endereco e _deseja_oferecer_caronas
 
     const std::string& Usuario::get_cpf() const { return _cpf; }
     const std::string& Usuario::get_nome() const { return _nome; }
