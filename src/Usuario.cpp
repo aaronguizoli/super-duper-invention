@@ -5,7 +5,6 @@
 #include <iomanip>
 
 namespace ufmg_carona {
-    // Construtor ATUALIZADO: 'deseja_oferecer_caronas' removido.
     Usuario::Usuario(std::string n, std::string c, std::string tel, std::string dt_nasc, std::string e, std::string s, Genero g, std::string vinculo_tipo, std::string detalhe_vinculo)
         : _nome(n), _cpf(c), _email(e), _senha(s), _telefone(tel), _data_nascimento(dt_nasc), _genero(g),
           _avaliacoes_recebidas(), _notificacoes(),
@@ -22,26 +21,22 @@ namespace ufmg_carona {
     const std::string& Usuario::get_nome() const { return _nome; }
     bool Usuario::verificar_senha(const std::string& s) const { return _senha == s; }
     
-    // Implementacao padrao para is_motorista() - um Usuario comum nao eh motorista
     bool Usuario::is_motorista() const { return false; }
 
-    // Implementacao dos getters de vinculo
     std::string Usuario::get_vinculo() const {
         if (_vinculo_tipo == "aluno") {
             return "Aluno do curso de " + _detalhe_vinculo;
         } else if (_vinculo_tipo == "funcionario") {
-            // Se for funcionario e o detalhe for "0", exibe apenas "Funcionario"
             if (_detalhe_vinculo == "0") {
                 return "Funcionario";
             }
-            return "Funcionario do setor " + _detalhe_vinculo; // Caso o 0 nao seja usado para funcionario
+            return "Funcionario do setor " + _detalhe_vinculo;
         }
         return "Vinculo desconhecido";
     }
     std::string Usuario::get_vinculo_raw() const { return _vinculo_tipo; }
-    std::string Usuario::get_detalhe_vinculo() const { return _detalhe_vinculo; } // Retorna o detalhe literal
+    std::string Usuario::get_detalhe_vinculo() const { return _detalhe_vinculo; }
 
-    // Implementacao dos outros getters
     const std::string& Usuario::get_email() const { return _email; }
     const std::string& Usuario::get_senha() const { return _senha; }
     Genero Usuario::get_genero() const { return _genero; }
@@ -59,18 +54,16 @@ namespace ufmg_carona {
         std::cout << "CPF: " << get_cpf() << std::endl;
         std::cout << "Telefone: " << get_telefone() << std::endl;
         std::cout << "Data de Nascimento: " << get_data_nascimento() << std::endl;
-        // Logica para exibir detalhe de vinculo apenas se for Aluno e o detalhe nao for "0"
         if (_vinculo_tipo == "aluno" && _detalhe_vinculo != "0") {
             std::cout << "Vinculo: " << get_vinculo() << std::endl;
-        } else if (_vinculo_tipo == "funcionario") { // Para funcionarios, exibe "Funcionario" sem detalhe se for "0"
-             // Se o detalhe para funcionario eh "0", nao exibe o detalhe
+        } else if (_vinculo_tipo == "funcionario") {
              if (_detalhe_vinculo == "0") {
                  std::cout << "Vinculo: Funcionario" << std::endl;
              } else {
                  std::cout << "Vinculo: Funcionario do setor " << _detalhe_vinculo << std::endl;
              }
         }
-        else { // Para outros casos (incluindo aluno com detalhe "0" ou desconhecido)
+        else {
             std::cout << "Vinculo: " << get_vinculo_raw() << std::endl;
         }
 
@@ -81,7 +74,6 @@ namespace ufmg_carona {
     const std::string& Usuario::get_telefone() const { return _telefone; }
     const std::string& Usuario::get_data_nascimento() const { return _data_nascimento; }
 
-    // NOVOS: Métodos SET para edição de perfil
     void Usuario::set_email(const std::string& email) { _email = email; }
     void Usuario::set_telefone(const std::string& telefone) { _telefone = telefone; }
     void Usuario::set_senha(const std::string& senha) { _senha = senha; }

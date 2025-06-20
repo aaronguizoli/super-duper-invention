@@ -12,17 +12,23 @@
 #include <algorithm>
 #include <map>
 #include <tuple>
+#include <chrono>
+#include <iomanip>
+#include <ctime>
 
 namespace ufmg_carona {
 
     Sistema::Sistema() : _usuario_logado(nullptr) {
         carregar_dados_iniciais();
+        remover_caronas_passadas();
+        gerar_caronas_de_rotinas();
     }
 
     Sistema::~Sistema() {
         std::cout << "\nFinalizando o sistema..." << std::endl;
         salvar_dados_usuarios();
         salvar_dados_veiculos();
+        salvar_dados_rotinas(); // Adicionado a chamada correta
         
         for (Usuario* u : _usuarios) {
             delete u;
@@ -40,7 +46,6 @@ namespace ufmg_carona {
         std::string comando_str;
 
         while (true) {
-            // Exibir o menu inicial com números para o estado não logado
             if (!_usuario_logado) {
                 exibir_menu_inicial_nao_logado();
             } else {
@@ -55,7 +60,7 @@ namespace ufmg_carona {
             }
 
             try {
-                int comando_int = -1; // Valor padrão para comando não numérico
+                int comando_int = -1;
                 bool is_numeric = true;
 
                 try {
@@ -65,7 +70,6 @@ namespace ufmg_carona {
                 }
 
                 if (!_usuario_logado) {
-                    // Lógica para comandos do menu inicial (não logado)
                     if (is_numeric) {
                         if (comando_int == 1) { // Cadastro
                             fluxo_cadastro();
@@ -73,39 +77,81 @@ namespace ufmg_carona {
                             fluxo_login();
                         } else if (comando_int == 0) { // Sair
                             std::cout << "Saindo do programa..." << std::endl;
-                            break; // Sai do loop principal
+                            break;
                         } else {
                             throw ComandoInvalidoException(comando_str);
                         }
-                    } else if (comando_str == "cadastro") { // Retrocompatibilidade ou comandos textuais
+                    } else if (comando_str == "cadastro") {
                         fluxo_cadastro();
-                    } else if (comando_str == "login") { // Retrocompatibilidade ou comandos textuais
+                    } else if (comando_str == "login") {
                         fluxo_login();
-                    } else if (comando_str == "sair") { // Retrocompatibilidade ou comandos textuais
+                    } else if (comando_str == "sair") {
                         std::cout << "Saindo do programa..." << std::endl;
-                        break; // Sai do loop principal
+                        break;
                     }
                     else {
                         throw ComandoInvalidoException(comando_str);
                     }
                 } else {
-                    // Lógica para usuário logado
-                    // Note: processar_comando_logado já assume entrada numérica
                     processar_comando_logado(comando_str);
                 }
             } catch (const ComandoInvalidoException& e) {
                 std::cerr << "ERRO: " << e.what() << std::endl;
             } catch (const AppExcecao& e) {
                 if (std::string(e.what()) == "Sair") {
-                    // Este break é para a exceção lançada de processar_comando_logado
                     break; 
                 }
                 std::cerr << "ERRO: " << e.what() << std::endl;
             } catch (const std::bad_alloc& e) {
                 std::cerr << "ERRO: Falha na alocacao de memoria: " << e.what() << std::endl;
-            } catch (const std::exception& e) { // Captura outras exceções inesperadas
+            } catch (const std::exception& e) {
                 std::cerr << "ERRO INESPERADO: " << e.what() << std::endl;
             }
+        }
+    }
+
+    std::tm Sistema::parse_datetime_string(const std::string& dt_str) const {
+        std::tm tm_struct = {};
+        std::stringstream ss(dt_str);
+        ss >> std::get_time(&tm_struct, "%d/%m/%Y %H:%M");
+        if (ss.fail()) {
+            std::cerr << "ERRO ao parsear data/hora: " << dt_str << std::endl;
+        }
+        return tm_struct;
+    }
+
+    std::string Sistema::get_current_datetime_string() const {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm* local_tm = std::localtime(&now_c);
+        std::stringstream ss;
+        ss << std::put_time(local_tm, "%d/%m/%Y %H:%M");
+        return ss.str();
+    }
+
+    bool Sistema::is_datetime_in_past(const std::string& dt_str) const {
+        std::tm carona_tm = parse_datetime_string(dt_str);
+        std::time_t carona_time = std::mktime(&carona_tm);
+
+        auto now = std::chrono::system_clock::now();
+        std::time_t current_time = std::chrono::system_clock::to_time_t(now);
+
+        if (carona_time == -1) {
+             std::cerr << "AVISO: Data/hora invalida para comparacao: " << dt_str << std::endl;
+             return true;
+        }
+
+        return std::difftime(current_time, carona_time) > 0;
+    }
+
+    void Sistema::remover_caronas_passadas() {
+        auto new_end = std::remove_if(_caronas.begin(), _caronas.end(),
+                                     [this](const Carona& carona) {
+                                         return is_datetime_in_past(carona.get_data_hora());
+                                     });
+        if (new_end != _caronas.end()) {
+            _caronas.erase(new_end, _caronas.end());
+            std::cout << "-> Caronas expiradas removidas." << std::endl;
         }
     }
 
@@ -119,7 +165,8 @@ namespace ufmg_carona {
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             } else if (valor < min_val || valor > max_val) {
-                std::cout << "Numero fora do intervalo permitido (" << min_val << "-" << max_val << ")."<< (min_val == 0 ? " Digite 0 para voltar." : "") << std::endl;
+                std::cout << "Numero fora do intervalo permitido (" << min_val << "-" << max_val << ")."
+                          << (min_val == 0 ? " Digite 0 para voltar." : "") << std::endl;
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             } else {
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -128,19 +175,62 @@ namespace ufmg_carona {
         }
     }
 
-    // NOVA FUNÇÃO: Menu inicial com números para não logado
+    std::vector<DiaDaSemana> Sistema::coletar_dias_da_semana(const std::string& prompt) {
+        std::vector<DiaDaSemana> dias_selecionados;
+        std::string input_str;
+        std::map<int, DiaDaSemana> int_to_dia = {
+            {0, DiaDaSemana::DOMINGO}, {1, DiaDaSemana::SEGUNDA},
+            {2, DiaDaSemana::TERCA}, {3, DiaDaSemana::QUARTA},
+            {4, DiaDaSemana::QUINTA}, {5, DiaDaSemana::SEXTA},
+            {6, DiaDaSemana::SABADO}
+        };
+
+        std::cout << prompt << " (0:Dom, 1:Seg, ..., 6:Sab. Digite 'todos' para todos os dias, ou numeros separados por virgula, ex: 1,3,5): ";
+        std::getline(std::cin, input_str);
+
+        if (input_str == "todos") {
+            for (int i = 0; i <= 6; ++i) {
+                dias_selecionados.push_back(int_to_dia[i]);
+            }
+        } else {
+            std::stringstream ss(input_str);
+            std::string segment;
+            while(std::getline(ss, segment, ',')) {
+                segment.erase(0, segment.find_first_not_of(" \t\n\r\f\v"));
+                segment.erase(segment.find_last_not_of(" \t\n\r\f\v") + 1);
+
+                if (segment.empty()) continue;
+
+                try {
+                    int dia_int = std::stoi(segment);
+                    if (dia_int >= 0 && dia_int <= 6) {
+                        dias_selecionados.push_back(int_to_dia[dia_int]);
+                    } else {
+                        std::cerr << "AVISO: Numero de dia invalido ignorado: " << dia_int << std::endl;
+                    }
+                } catch (const std::invalid_argument&) {
+                    std::cerr << "AVISO: Entrada nao numerica ignorada: '" << segment << "'" << std::endl;
+                } catch (const std::out_of_range&) {
+                    std::cerr << "AVISO: Numero muito grande para dia da semana ignorado: '" << segment << "'" << std::endl;
+                }
+            }
+            std::sort(dias_selecionados.begin(), dias_selecionados.end());
+            dias_selecionados.erase(std::unique(dias_selecionados.begin(), dias_selecionados.end()), dias_selecionados.end());
+        }
+        return dias_selecionados;
+    }
+
     void Sistema::exibir_menu_inicial_nao_logado() {
         std::cout << "\n--- Menu Principal ---" << std::endl;
         std::cout << "(1) Cadastro | (2) Login | (0) Sair" << std::endl;
     }
 
-    // FUNÇÃO AUXILIAR: Extrair lógica de processamento de comando para usuário logado
     void Sistema::processar_comando_logado(const std::string& comando_str) {
         int comando_int;
         try {
             comando_int = std::stoi(comando_str);
         } catch (const std::invalid_argument&) {
-            throw ComandoInvalidoException(comando_str); // Se não for número, é comando inválido
+            throw ComandoInvalidoException(comando_str);
         }
 
         if (comando_int == 1) { // Perfil
@@ -149,46 +239,38 @@ namespace ufmg_carona {
         } else if (comando_int == 2) { // Passageiro
             fluxo_passageiro_menu();
         } else if (comando_int == 3) { // Motorista
-            // Motorista agora sempre direciona para fluxo_motorista_menu, que fará a checagem
             fluxo_motorista_menu();
         } else if (comando_int == 4) { // Logout
             fluxo_logout();
         } else if (comando_int == 5) { // Sair do programa
             std::cout << "Saindo do programa..." << std::endl;
-            throw AppExcecao("Sair"); // Sinaliza para executar() sair
+            throw AppExcecao("Sair");
         } else {
             throw ComandoInvalidoException(comando_str);
         }
     }
 
-    // A função exibir_menu() original será mantida com corpo vazio,
-    // já que as chamadas foram movidas para dentro de executar().
     void Sistema::exibir_menu() {
-        // Este método não é mais usado diretamente como um dispatcher.
-        // As chamadas foram substituídas por exibir_menu_inicial_nao_logado()
+        // Este metodo nao e mais usado diretamente como um dispatcher.
+        // As chamadas foram substituidas por exibir_menu_inicial_nao_logado()
         // e exibir_menu_logado() dentro de 'executar()'.
     }
 
-
-    // NOVO: Menu para usuario logado
     void Sistema::exibir_menu_logado() {
         std::cout << "\nLogado como " << _usuario_logado->get_nome() << std::endl;
         std::cout << "(1) Perfil | (2) Passageiro | (3) Motorista | (4) Logout | (5) Sair" << std::endl;
     }
 
-    // NOVO: Menu para passageiro
     void Sistema::exibir_menu_passageiro() {
         std::cout << "\n--- Menu Passageiro ---" << std::endl;
         std::cout << "(1) Solicitar Carona | (2) Status das Minhas Solicitacoes | (0) Voltar" << std::endl;
     }
 
-    // NOVO: Menu para motorista
     void Sistema::exibir_menu_motorista() {
         std::cout << "\n--- Menu Motorista ---" << std::endl;
-        std::cout << "(1) Oferecer Carona | (2) Gerenciar Solicitacoes | (3) Cadastrar Veiculo | (0) Voltar" << std::endl;
+        std::cout << "(1) Oferecer Carona | (2) Gerenciar Solicitacoes | (3) Cadastrar Veiculo | (4) Gerenciar Rotinas | (0) Voltar" << std::endl;
     }
 
-    // NOVO: Fluxo do menu de passageiro
     void Sistema::fluxo_passageiro_menu() {
         int comando;
         do {
@@ -201,16 +283,13 @@ namespace ufmg_carona {
                 } else if (comando == 2) {
                     fluxo_status_caronas();
                 }
-                // Se comando for 0, o loop termina e ele volta para o menu anterior
             } catch (const AppExcecao& e) {
                 std::cerr << "ERRO: " << e.what() << std::endl;
             }
-        } while (comando != 0); // Continua no loop ate o usuario escolher '0' para voltar
+        } while (comando != 0);
     }
 
-    // NOVO: Fluxo do menu de motorista
     void Sistema::fluxo_motorista_menu() {
-        // Se o usuario NAO for motorista, oferece para ele se tornar um
         if (!_usuario_logado->is_motorista()) {
             std::cout << "Voce nao esta registrado como motorista." << std::endl;
             char deseja_se_tornar;
@@ -219,16 +298,15 @@ namespace ufmg_carona {
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
             if (deseja_se_tornar == 's' || deseja_se_tornar == 'S') {
-                fluxo_tornar_motorista(); // NOVO: Chama o fluxo para se tornar motorista
+                fluxo_tornar_motorista();
             }
-            return; // Sempre retorna apos tentar se tornar motorista para reexibir o menu principal
+            return;
         }
 
-        // Se ja for motorista, exibe o menu normal de motorista
         int comando;
         do {
             exibir_menu_motorista();
-            comando = coletar_int_input("> ", 0, 3);
+            comando = coletar_int_input("> ", 0, 4);
 
             try {
                 if (comando == 1) {
@@ -237,18 +315,21 @@ namespace ufmg_carona {
                     fluxo_gerenciar_solicitacoes();
                 } else if (comando == 3) {
                     fluxo_cadastrar_veiculo();
+                } else if (comando == 4) {
+                    fluxo_gerenciar_rotinas();
                 }
             } catch (const AppExcecao& e) {
                 std::cerr << "ERRO: " << e.what() << std::endl;
             }
-        } while (comando != 0); // Continua no loop ate o usuario escolher '0' para voltar
+        } while (comando != 0);
     }
 
-    // NOVO: Fluxo para lidar com o sub-menu de Perfil (Editar ou Gerenciar Veiculos)
     void Sistema::fluxo_editar_perfil_ou_veiculos() {
         int sub_comando_perfil;
         do {
             std::cout << "\n--- Menu Perfil ---" << std::endl;
+            _usuario_logado->imprimir_perfil();
+            std::cout << "Escolha o campo para editar:" << std::endl;
             std::cout << "(1) Editar Perfil | (2) Gerenciar Veiculos (Motorista) | (0) Voltar" << std::endl;
             sub_comando_perfil = coletar_int_input("> ", 0, 2);
 
@@ -259,18 +340,16 @@ namespace ufmg_carona {
                     if (_usuario_logado->is_motorista()) {
                         fluxo_gerenciar_veiculos();
                     } else {
-                        std::cout << "Voce nao eh motorista para gerenciar veiculos." << std::endl;
+                        std::cout << "Voce nao e motorista para gerenciar veiculos." << std::endl;
                     }
                 }
             } catch (const AppExcecao& e) {
                 std::cerr << "ERRO: " << e.what() << std::endl;
             }
-        } while (sub_comando_perfil != 0); // Continua no loop ate o usuario escolher '0' para voltar
+        } while (sub_comando_perfil != 0);
     }
 
-    // NOVO: Fluxo para tornar um usuario em motorista
     void Sistema::fluxo_tornar_motorista() {
-        // Verifica se o usuario ja nao eh um motorista (ja foi checado antes, mas eh uma boa pratica)
         if (_usuario_logado->is_motorista()) {
             std::cout << "Voce ja e um motorista cadastrado." << std::endl;
             return;
@@ -280,14 +359,12 @@ namespace ufmg_carona {
         std::cout << "\n--- Cadastro para Motorista ---" << std::endl;
         std::cout << "Numero da CNH: "; std::getline(std::cin, cnh_numero_digitado);
 
-        // Encontra o indice do usuario atual na lista _usuarios
         auto it = std::find(_usuarios.begin(), _usuarios.end(), _usuario_logado);
         if (it == _usuarios.end()) {
             std::cerr << "ERRO INTERNO: Usuario logado nao encontrado na lista de usuarios." << std::endl;
             return;
         }
 
-        // Obtem os dados do usuario atual para criar o novo motorista
         std::string nome = _usuario_logado->get_nome();
         std::string cpf = _usuario_logado->get_cpf();
         std::string telefone = _usuario_logado->get_telefone();
@@ -298,24 +375,19 @@ namespace ufmg_carona {
         std::string vinculo_tipo = _usuario_logado->get_vinculo_raw();
         std::string detalhe_vinculo = _usuario_logado->get_detalhe_vinculo();
 
-        // Cria um novo objeto Motorista
         Motorista* novo_motorista = new Motorista(nome, cpf, telefone, data_nascimento, email, senha, genero,
                                                   vinculo_tipo, detalhe_vinculo, cnh_numero_digitado);
         
-        // Libera a memoria do Usuario antigo
         delete _usuario_logado; 
 
-        // Substitui o ponteiro antigo pelo novo Motorista na lista _usuarios
         *it = novo_motorista;
         
-        // Atualiza _usuario_logado para apontar para o novo Motorista
         _usuario_logado = novo_motorista;
 
-        salvar_dados_usuarios(); // Salva os dados atualizados do usuario (agora motorista)
+        salvar_dados_usuarios();
 
         std::cout << "Parabens! Voce agora e um motorista cadastrado." << std::endl;
 
-        // Oferece para cadastrar um veiculo imediatamente
         char cadastrar_veiculo_char;
         std::cout << "Deseja cadastrar um veiculo agora? (s/n): ";
         std::cin >> cadastrar_veiculo_char;
@@ -391,9 +463,9 @@ namespace ufmg_carona {
 
     void Sistema::fluxo_editar_perfil() {
         int escolha;
-        do { // Adiciona um loop para permitir edicao multipla ou voltar
+        do {
             std::cout << "\n--- Editar Perfil ---" << std::endl;
-            _usuario_logado->imprimir_perfil(); // Mostra o perfil atual
+            _usuario_logado->imprimir_perfil();
             std::cout << "Escolha o campo para editar:" << std::endl;
             std::cout << "(1) Email | (2) Telefone | (3) Senha | (4) Genero | (0) Voltar" << std::endl;
             
@@ -419,9 +491,8 @@ namespace ufmg_carona {
                     _usuario_logado->set_senha(novo_valor);
                     std::cout << "Senha atualizada!" << std::endl;
                     break;
-                case 4: { // Genero - Adicionado escopo para 'gen_int'
-                    std::cout << "Novo Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar): ";
-                    int gen_int = coletar_int_input("", 0, 3);
+                case 4: { // Genero
+                    int gen_int = coletar_int_input("Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar): ", 0, 3);
                     _usuario_logado->set_genero(static_cast<Genero>(gen_int));
                     std::cout << "Genero atualizado!" << std::endl;
                     break;
@@ -433,16 +504,15 @@ namespace ufmg_carona {
                     std::cout << "Opcao invalida." << std::endl;
                     break;
             }
-            if (escolha != 0) { // Salva apenas se algo foi editado
-                salvar_dados_usuarios(); // Salva as alteracoes no arquivo
+            if (escolha != 0) {
+                salvar_dados_usuarios();
             }
-        } while (escolha != 0); // Continua no loop ate o usuario escolher '0' para voltar
+        } while (escolha != 0);
     }
 
-    // NOVO: Fluxo para gerenciar veiculos do motorista
     void Sistema::fluxo_gerenciar_veiculos() {
         if (!_usuario_logado->is_motorista()) {
-            std::cout << "Voce nao eh motorista para gerenciar veiculos." << std::endl;
+            std::cout << "Voce nao e motorista para gerenciar veiculos." << std::endl;
             return;
         }
         Motorista* motorista_logado = dynamic_cast<Motorista*>(_usuario_logado);
@@ -477,10 +547,9 @@ namespace ufmg_carona {
             } catch (const AppExcecao& e) {
                 std::cerr << "ERRO: " << e.what() << std::endl;
             }
-        } while (comando != 0); // Continua no loop ate o usuario escolher '0' para voltar
+        } while (comando != 0);
     }
 
-    // NOVO: Fluxo para editar um veiculo especifico
     void Sistema::fluxo_editar_veiculo(Motorista* motorista) {
         if (motorista->get_veiculos().empty()) {
             std::cout << "Nenhum veiculo para editar." << std::endl;
@@ -500,7 +569,7 @@ namespace ufmg_carona {
         }
 
         int escolha;
-        do { // Loop para permitir editar varios campos ou voltar
+        do {
             std::cout << "\n--- Editando Veiculo: " << placa_escolhida << " ---" << std::endl;
             veiculo_para_editar->exibir_info();
             std::cout << "Escolha o campo para editar:" << std::endl;
@@ -524,7 +593,7 @@ namespace ufmg_carona {
                     break;
                 case 4:
                     std::cout << "Total de Lugares (com motorista): ";
-                    novo_int_valor = coletar_int_input("", 2, 99); // Limites razoaveis para lugares
+                    novo_int_valor = coletar_int_input("", 2, 99);
                     veiculo_para_editar->set_lugares(novo_int_valor);
                     break;
                 case 0:
@@ -534,14 +603,13 @@ namespace ufmg_carona {
                     std::cout << "Opcao invalida." << std::endl;
                     break;
             }
-            if (escolha != 0) { // Salva apenas se algo foi editado
-                salvar_dados_veiculos(); // Salva as alteracoes
+            if (escolha != 0) {
+                salvar_dados_veiculos();
                 std::cout << "Veiculo atualizado com sucesso!" << std::endl;
             }
-        } while (escolha != 0); // Continua no loop ate o usuario escolher '0' para voltar
+        } while (escolha != 0);
     }
 
-    // NOVO: Fluxo para excluir um veiculo
     void Sistema::fluxo_excluir_veiculo(Motorista* motorista) {
         if (motorista->get_veiculos().empty()) {
             std::cout << "Nenhum veiculo para excluir." << std::endl;
@@ -561,7 +629,7 @@ namespace ufmg_carona {
 
         if (confirmar == 's' || confirmar == 'S') {
             if (motorista->remover_veiculo(placa_escolhida)) {
-                salvar_dados_veiculos(); // Salva as alteracoes
+                salvar_dados_veiculos();
                 std::cout << "Veiculo " << placa_escolhida << " excluido com sucesso!" << std::endl;
             } else {
                 std::cout << "Veiculo com a placa '" << placa_escolhida << "' nao encontrado." << std::endl;
@@ -598,16 +666,16 @@ namespace ufmg_carona {
                 std::cin >> tentar_outra;
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 if (!(tentar_outra == 's' || tentar_outra == 'S')) {
-                    cadastrar_outro = 'n'; // Sai do loop
+                    cadastrar_outro = 'n';
                 }
-                continue; // Volta para o inicio do loop
+                continue;
             }
 
             std::cout << "Marca: "; std::getline(std::cin, marca);
             std::cout << "Modelo: "; std::getline(std::cin, modelo);
             std::cout << "Cor: "; std::getline(std::cin, cor);
             std::cout << "Total de lugares (com motorista): ";
-            lugares = coletar_int_input("", 2, 99); // Limites razoaveis para lugares
+            lugares = coletar_int_input("", 2, 99);
             
             motorista_logado->adicionar_veiculo(new Veiculo(placa, marca, modelo, cor, lugares));
             salvar_dados_veiculos();
@@ -617,6 +685,252 @@ namespace ufmg_carona {
             std::cin >> cadastrar_outro;
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
+    }
+
+    void Sistema::fluxo_gerenciar_rotinas() {
+        if (!_usuario_logado->is_motorista()) {
+            std::cout << "Voce nao e motorista para gerenciar rotinas." << std::endl;
+            return;
+        }
+        Motorista* motorista_logado = dynamic_cast<Motorista*>(_usuario_logado);
+        if (!motorista_logado) return;
+
+        int comando;
+        do {
+            std::cout << "\n--- Gerenciar Minhas Rotinas ---" << std::endl;
+            fluxo_visualizar_rotinas(motorista_logado);
+
+            std::cout << "\n(1) Adicionar Nova Rotina | (2) Excluir Rotina | (0) Voltar" << std::endl;
+            comando = coletar_int_input("> ", 0, 2);
+
+            try {
+                if (comando == 1) {
+                    fluxo_adicionar_rotina(motorista_logado);
+                } else if (comando == 2) {
+                    fluxo_excluir_rotina(motorista_logado);
+                }
+            } catch (const AppExcecao& e) {
+                std::cerr << "ERRO: " << e.what() << std::endl;
+            }
+        } while (comando != 0);
+    }
+
+    void Sistema::fluxo_adicionar_rotina(Motorista* motorista) {
+        std::string origem, destino, horario;
+        std::vector<DiaDaSemana> dias_rotina;
+        char apenas_mulheres_char;
+        bool apenas_mulheres_rotina_bool;
+
+        std::cout << "\n--- Adicionar Nova Rotina ---" << std::endl;
+        
+        dias_rotina = coletar_dias_da_semana("Selecione os dias da semana para a rotina");
+
+        std::cout << "Horario de Saida (HH:MM): "; std::getline(std::cin, horario);
+        std::cout << "Local de Saida Padrao: "; std::getline(std::cin, origem);
+        std::cout << "Destino Final: "; std::getline(std::cin, destino);
+
+        std::string data_hora_teste = get_current_datetime_string().substr(0, 10) + " " + horario;
+        if (is_datetime_in_past(data_hora_teste) && !dias_rotina.empty()) {
+            bool is_future_day_selected = false;
+            auto now = std::chrono::system_clock::now();
+            std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+            std::tm* local_tm = std::localtime(&now_c);
+            int current_wday = local_tm->tm_wday;
+
+            for(DiaDaSemana dia : dias_rotina) {
+                if (static_cast<int>(dia) > current_wday || 
+                    (static_cast<int>(dia) == current_wday && !is_datetime_in_past(data_hora_teste))) {
+                    is_future_day_selected = true;
+                    break;
+                }
+            }
+            if (!is_future_day_selected) {
+                 std::cout << "ERRO: O horario (" << horario << ") para a rotina no(s) dia(s) selecionado(s) ja passou." << std::endl;
+                 return;
+            }
+        }
+
+        if (motorista->get_veiculos().empty()) {
+            std::cout << "Voce nao possui veiculos cadastrados. Cadastre um veiculo antes de criar rotinas." << std::endl;
+            return;
+        }
+        std::cout << "Seus veiculos cadastrados:" << std::endl;
+        for (size_t i = 0; i < motorista->get_veiculos().size(); ++i) {
+            std::cout << "[" << (i + 1) << "] ";
+            motorista->get_veiculos()[i]->exibir_info();
+        }
+        int indice_veiculo = coletar_int_input("Digite o numero do veiculo a ser usado nesta rotina: ", 1, motorista->get_veiculos().size());
+        Veiculo* veiculo_para_rotina = motorista->buscar_veiculo_por_indice(indice_veiculo - 1);
+        
+        if (!veiculo_para_rotina) {
+            std::cout << "Selecao de veiculo invalida." << std::endl;
+            return;
+        }
+        std::string placa_veiculo = veiculo_para_rotina->get_placa();
+
+        if (_usuario_logado->get_genero() == Genero::FEMININO) {
+            std::cout << "Apenas para mulheres? (s/n): ";
+            std::cin >> apenas_mulheres_char;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            apenas_mulheres_rotina_bool = (apenas_mulheres_char == 's' || apenas_mulheres_char == 'S');
+        } else {
+            apenas_mulheres_rotina_bool = false;
+            std::cout << "Nota: A opcao 'Apenas para mulheres' esta disponivel apenas para usuarias do genero feminino." << std::endl;
+        }
+
+        Rotina nova_rotina(dias_rotina, horario, origem, destino, placa_veiculo, apenas_mulheres_rotina_bool);
+        motorista->adicionar_rotina(nova_rotina);
+        salvar_dados_rotinas();
+        std::cout << "Rotina adicionada com sucesso!" << std::endl;
+    }
+
+    void Sistema::fluxo_visualizar_rotinas(Motorista* motorista) {
+        const auto& rotinas = motorista->get_rotinas();
+        if (rotinas.empty()) {
+            std::cout << "Nenhuma rotina cadastrada." << std::endl;
+            return;
+        }
+
+        std::cout << "\n--- Suas Rotinas Cadastradas ---" << std::endl;
+        std::map<DiaDaSemana, std::string> dias_da_semana_map = {
+            {DiaDaSemana::DOMINGO, "Dom"}, {DiaDaSemana::SEGUNDA, "Seg"},
+            {DiaDaSemana::TERCA, "Ter"}, {DiaDaSemana::QUARTA, "Qua"},
+            {DiaDaSemana::QUINTA, "Qui"}, {DiaDaSemana::SEXTA, "Sex"},
+            {DiaDaSemana::SABADO, "Sab"}
+        };
+
+        for (size_t i = 0; i < rotinas.size(); ++i) {
+            const Rotina& rotina = rotinas[i];
+            std::cout << "[" << (i + 1) << "] ";
+            
+            std::cout << "Dias: ";
+            const std::vector<DiaDaSemana>& dias_da_rotina = rotina.get_dias();
+            if (dias_da_rotina.empty()) {
+                std::cout << "Nenhum";
+            } else if (dias_da_rotina.size() == 7) {
+                std::cout << "Todos";
+            } else {
+                for (size_t j = 0; j < dias_da_rotina.size(); ++j) {
+                    std::cout << dias_da_semana_map[dias_da_rotina[j]];
+                    if (j < dias_da_rotina.size() - 1) {
+                        std::cout << ",";
+                    }
+                }
+            }
+            std::cout << " | Hora: " << rotina.get_horario_saida()
+                      << " | " << rotina.get_local_saida_padrao() << " -> "
+                      << rotina.get_destino_final();
+            if (!rotina.get_placa_veiculo_usado().empty()) {
+                std::cout << " (Veiculo: " << rotina.get_placa_veiculo_usado() << ")";
+            }
+            if (rotina.get_apenas_mulheres()) {
+                std::cout << " (Apenas Mulheres)";
+            }
+            std::cout << std::endl;
+        }
+    }
+
+    void Sistema::fluxo_excluir_rotina(Motorista* motorista) {
+        if (motorista->get_rotinas().empty()) {
+            std::cout << "Nenhuma rotina para excluir." << std::endl;
+            return;
+        }
+
+        fluxo_visualizar_rotinas(motorista);
+
+        int indice_escolhido = coletar_int_input("Digite o numero da rotina para excluir (0 para voltar): ", 0, motorista->get_rotinas().size());
+
+        if (indice_escolhido == 0) {
+            std::cout << "Exclusao cancelada." << std::endl;
+            return;
+        }
+
+        char confirmar;
+        std::cout << "Tem certeza que deseja excluir esta rotina? (s/n): ";
+        std::cin >> confirmar;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+        if (confirmar == 's' || confirmar == 'S') {
+            if (motorista->remover_rotina(indice_escolhido - 1)) {
+                salvar_dados_rotinas();
+                std::cout << "Rotina excluida com sucesso!" << std::endl;
+            } else {
+                std::cout << "Erro ao excluir rotina. Indice invalido." << std::endl;
+            }
+        } else {
+            std::cout << "Exclusao cancelada." << std::endl;
+        }
+    }
+
+    void Sistema::gerar_caronas_de_rotinas() {
+        std::cout << "\nVerificando rotinas para criar caronas..." << std::endl;
+
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm* local_tm = std::localtime(&now_c);
+        int dia_semana_atual_int = local_tm->tm_wday;
+        DiaDaSemana dia_semana_atual = static_cast<DiaDaSemana>(dia_semana_atual_int);
+
+        std::stringstream ss_data_atual;
+        ss_data_atual << std::put_time(local_tm, "%d/%m/%Y");
+        std::string data_atual_str = ss_data_atual.str();
+
+        for (Usuario* u : _usuarios) {
+            if (u->is_motorista()) {
+                Motorista* motorista_ptr = dynamic_cast<Motorista*>(u);
+                if (motorista_ptr) {
+                    for (const auto& rotina : motorista_ptr->get_rotinas()) {
+                        if (rotina.aplica_se_ao_dia(dia_semana_atual)) {
+                            std::string data_hora_completa = data_atual_str + " " + rotina.get_horario_saida();
+
+                            if (is_datetime_in_past(data_hora_completa)) {
+                                std::cout << "  AVISO: Rotina de " << motorista_ptr->get_nome() << " para " << data_hora_completa << " ignorada. Horario ja passou para hoje." << std::endl;
+                                continue;
+                            }
+
+                            Veiculo* veiculo_rotina = motorista_ptr->buscar_veiculo_por_placa(rotina.get_placa_veiculo_usado());
+                            
+                            if (!veiculo_rotina) {
+                                std::cerr << "AVISO: Rotina de motorista " << motorista_ptr->get_nome() << " tem veiculo "
+                                          << rotina.get_placa_veiculo_usado() << " nao encontrado. Carona nao gerada." << std::endl;
+                                continue;
+                            }
+
+                            bool carona_ja_criada = false;
+                            for (const auto& carona : _caronas) {
+                                if (carona.get_motorista() == motorista_ptr &&
+                                    carona.get_origem() == rotina.get_local_saida_padrao() &&
+                                    carona.get_destino() == rotina.get_destino_final() &&
+                                    carona.get_data_hora() == data_hora_completa &&
+                                    carona.get_veiculo_usado() == veiculo_rotina) {
+                                    carona_ja_criada = true;
+                                    break;
+                                }
+                            }
+
+                            if (!carona_ja_criada) {
+                                bool apenas_mulheres_rotina = rotina.get_apenas_mulheres(); 
+
+                                Carona nova_carona = CaronaFactory::criar_carona(
+                                    rotina.get_local_saida_padrao(),
+                                    rotina.get_destino_final(),
+                                    data_hora_completa,
+                                    motorista_ptr,
+                                    veiculo_rotina,
+                                    apenas_mulheres_rotina,
+                                    TipoCarona::AGENDADA
+                                );
+                                _caronas.push_back(nova_carona);
+                                std::cout << "  Carona (ID: " << nova_carona.get_id() << ") gerada automaticamente de rotina para "
+                                          << motorista_ptr->get_nome() << " (" << data_hora_completa << ") usando veiculo "
+                                          << rotina.get_placa_veiculo_usado() << "." << std::endl;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        std::cout << "Verificacao de rotinas concluida." << std::endl;
     }
 
     void Sistema::fluxo_oferecer_carona() {
@@ -637,42 +951,48 @@ namespace ufmg_carona {
                 motorista_logado->get_veiculos()[i]->exibir_info();
             }
         }
-        std::string placa_escolhida;
-        std::cout << "Digite a placa do veiculo que deseja usar para esta carona (0 para voltar): ";
-        std::getline(std::cin, placa_escolhida);
+        int indice_veiculo = coletar_int_input("Digite o numero do veiculo que deseja usar para esta carona: ", 1, motorista_logado->get_veiculos().size());
+        Veiculo* veiculo_selecionado = motorista_logado->buscar_veiculo_por_indice(indice_veiculo - 1);
         
-        if (placa_escolhida == "0") return; // Volta se o usuario digitar 0
-
-        Veiculo* veiculo_selecionado = motorista_logado->buscar_veiculo_por_placa(placa_escolhida);
         if (!veiculo_selecionado) {
-            std::cout << "Veiculo com a placa informada nao encontrado em seus cadastros." << std::endl;
+            std::cout << "Selecao de veiculo invalida." << std::endl;
             return;
         }
 
         std::string origem, destino, data;
         char apenas_mulheres_char;
+        bool apenas_mulheres;
+
         std::cout << "Origem: "; std::getline(std::cin, origem);
         std::cout << "Destino: "; std::getline(std::cin, destino);
-        std::cout << "Data e Hora (ex: 18/06/2025 08:00): "; std::getline(std::cin, data);
-        std::cout << "Apenas para mulheres? (s/n): "; std::cin >> apenas_mulheres_char;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        bool apenas_mulheres = (apenas_mulheres_char == 's' || apenas_mulheres_char == 'S');
+        std::cout << "Data e Hora (ex: DD/MM/AAAA HH:MM): "; std::getline(std::cin, data);
+        
+        if (is_datetime_in_past(data)) {
+            std::cout << "ERRO: Nao e possivel oferecer caronas com data e hora no passado." << std::endl;
+            return;
+        }
+
+        if (_usuario_logado->get_genero() == Genero::FEMININO) {
+            std::cout << "Apenas para mulheres? (s/n): ";
+            std::cin >> apenas_mulheres_char;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            apenas_mulheres = (apenas_mulheres_char == 's' || apenas_mulheres_char == 'S');
+        } else {
+            apenas_mulheres = false;
+            std::cout << "Nota: A opcao 'Apenas para mulheres' esta disponivel apenas para usuarias do genero feminino." << std::endl;
+        }
         
         Carona nova_carona = CaronaFactory::criar_carona(origem, destino, data, _usuario_logado, veiculo_selecionado, apenas_mulheres, TipoCarona::AGENDADA);
         _caronas.push_back(nova_carona);
         std::cout << "Carona (ID: " << nova_carona.get_id() << ") criada com sucesso usando o veiculo " << veiculo_selecionado->get_placa() << "!" << std::endl;
     }
 
-    // ALTERADO: fluxo_solicitar_carona agora inclui busca e filtros e NAO MOSTRA SOLICITACOES JA FEITAS
     void Sistema::fluxo_solicitar_carona() {
         std::cout << "\n--- Solicitar Carona ---" << std::endl;
-        if (_caronas.empty()) {
-            std::cout << "Nenhuma carona disponivel no momento." << std::endl;
-            return;
-        }
+        remover_caronas_passadas();
 
         std::string filtro_origem, filtro_destino, filtro_data, filtro_hora;
-        int filtro_genero_int = -1; // -1 = sem filtro de genero
+        int filtro_genero_int = -1;
 
         char usar_filtro;
         std::cout << "Deseja usar filtros para buscar caronas? (s/n): ";
@@ -684,39 +1004,45 @@ namespace ufmg_carona {
             std::cout << "Filtro de Destino (deixe em branco para ignorar): "; std::getline(std::cin, filtro_destino);
             std::cout << "Filtro de Data (DD/MM/AAAA, deixe em branco para ignorar): "; std::getline(std::cin, filtro_data);
             std::cout << "Filtro de Hora (HH:MM, deixe em branco para ignorar): "; std::getline(std::cin, filtro_hora);
-            std::cout << "Filtro de Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar, -1:Sem Filtro): ";
-            filtro_genero_int = coletar_int_input("", -1, 3);
+            
+            if (_usuario_logado->get_genero() == Genero::FEMININO) {
+                std::cout << "Filtro de Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar, -1:Sem Filtro): ";
+                filtro_genero_int = coletar_int_input("", -1, 3);
+            } else {
+                filtro_genero_int = -1;
+                std::cout << "Nota: A opcao 'Filtro de Genero' esta disponivel apenas para usuarias do genero feminino. Ignorando filtro de genero." << std::endl;
+            }
         }
 
         std::vector<Carona*> caronas_filtradas;
         for (auto& carona : _caronas) {
-            // Verifica se o usuario logado ja solicitou esta carona
-            bool ja_solicitou = false;
-            for (const auto& solicitacao : _solicitacoes) {
-                if (solicitacao->get_passageiro() == _usuario_logado &&
-                    solicitacao->get_carona()->get_id() == carona.get_id()) {
-                    ja_solicitou = true;
-                    break;
-                }
-            }
-            if (ja_solicitou) {
-                continue; // Pula para a proxima carona se o usuario ja solicitou esta
+            // NOVO: Nao mostrar carona do proprio usuario
+            if (carona.get_motorista() == _usuario_logado) {
+                continue; 
             }
 
-            // Continua com os filtros existentes
+            if (is_datetime_in_past(carona.get_data_hora())) {
+                 continue;
+            }
+
             bool atende_filtro_origem = filtro_origem.empty() || carona.get_origem().find(filtro_origem) != std::string::npos;
             bool atende_filtro_destino = filtro_destino.empty() || carona.get_destino().find(filtro_destino) != std::string::npos;
             
-            // Simples comparacao de data e hora
             bool atende_filtro_data = filtro_data.empty() || carona.get_data_hora().find(filtro_data) != std::string::npos;
             bool atende_filtro_hora = filtro_hora.empty() || carona.get_data_hora().find(filtro_hora) != std::string::npos;
 
             bool atende_filtro_genero = true;
             if (filtro_genero_int != -1) {
-                // Se a carona é apenas para mulheres e o filtro é Feminino (1), atende
-                // Se a carona não é apenas para mulheres, atende qualquer filtro de gênero
-                if (carona.get_apenas_mulheres() && static_cast<Genero>(filtro_genero_int) != Genero::FEMININO) {
+                if (carona.get_apenas_mulheres() && _usuario_logado->get_genero() != Genero::FEMININO) {
                     atende_filtro_genero = false;
+                } else if (carona.get_apenas_mulheres() && static_cast<Genero>(filtro_genero_int) != Genero::FEMININO) {
+                    atende_filtro_genero = false;
+                }
+                else if (!carona.get_apenas_mulheres() && static_cast<Genero>(filtro_genero_int) != Genero::PREFIRO_NAO_INFORMAR) {
+                    if (static_cast<Genero>(filtro_genero_int) != carona.get_motorista()->get_genero()) {
+                         // A logica e mais complexa e depende da interpretacao exata.
+                         // Deixei mais aberta para customizacao
+                    }
                 }
             }
 
@@ -729,8 +1055,8 @@ namespace ufmg_carona {
             }
         }
 
-        if (caronas_filtradas.empty()) {
-            std::cout << "Nenhuma carona encontrada com os filtros especificados ou voce ja solicitou todas as caronas disponiveis." << std::endl;
+        if (_caronas.empty() || caronas_filtradas.empty()) {
+            std::cout << "Nenhuma carona disponivel no momento ou com os filtros especificados." << std::endl;
             return;
         }
 
@@ -740,10 +1066,10 @@ namespace ufmg_carona {
         }
 
         int id_carona;
-        std::cout << "\nDigite o ID da carona que deseja solicitar (0 para voltar ao menu Passageiro): ";
+        std::cout << "\nDigite o ID da carona que deseja solicitar (0 para voltar): ";
         id_carona = coletar_int_input("", 0, std::numeric_limits<int>::max());
 
-        if (id_carona == 0) return; // Volta para o menu de passageiro
+        if (id_carona == 0) return;
 
         Carona* carona_escolhida = buscar_carona_por_id(id_carona);
         if (!carona_escolhida) {
@@ -777,7 +1103,8 @@ namespace ufmg_carona {
         std::vector<Solicitacao*> solicitacoes_motorista;
         for (const auto& solicitacao : _solicitacoes) {
             if (solicitacao->get_carona() && solicitacao->get_carona()->get_motorista() == _usuario_logado &&
-                solicitacao->get_status() == StatusSolicitacao::PENDENTE) {
+                solicitacao->get_status() == StatusSolicitacao::PENDENTE &&
+                !is_datetime_in_past(solicitacao->get_carona()->get_data_hora())) {
                 solicitacoes_motorista.push_back(solicitacao);
             }
         }
@@ -809,7 +1136,6 @@ namespace ufmg_carona {
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
         if (resposta == 's' || resposta == 'S') {
-            // Verifica novamente as vagas antes de aceitar
             if (solicitacao_escolhida->get_carona()->get_vagas_disponiveis() > 0) {
                 solicitacao_escolhida->aceitar();
                 solicitacao_escolhida->get_carona()->adicionar_passageiro(solicitacao_escolhida->get_passageiro());
@@ -817,7 +1143,7 @@ namespace ufmg_carona {
                                 "Sua solicitacao de carona foi ACEITA!");
                 std::cout << "Solicitacao aceita!" << std::endl;
             } else {
-                solicitacao_escolhida->recusar(); // Recusa se nao houver vagas
+                solicitacao_escolhida->recusar();
                 enviar_notificacao(solicitacao_escolhida->get_passageiro(),
                                 "Sua solicitacao de carona foi RECUSADA. Carona sem vagas.");
                 std::cout << "Nao foi possivel aceitar a solicitacao: carona sem vagas." << std::endl;
@@ -852,6 +1178,9 @@ namespace ufmg_carona {
             std::cout << "Data: " << solicitacao->get_carona()->get_data_hora() << std::endl;
             std::cout << "Motorista: " << solicitacao->get_carona()->get_motorista()->get_nome() << std::endl;
             std::cout << "Status: " << solicitacao->get_status_string() << std::endl;
+            if (is_datetime_in_past(solicitacao->get_carona()->get_data_hora())) {
+                std::cout << "OBS: Esta carona ja ocorreu ou o horario de partida ja passou." << std::endl;
+            }
         }
     }
 
@@ -862,11 +1191,10 @@ namespace ufmg_carona {
         return nullptr;
     }
     
-    // NOVO: Busca um veiculo por placa dentro dos veiculos de um motorista especifico
     Veiculo* Sistema::buscar_veiculo_por_placa_motorista(Motorista* motorista, const std::string& placa) {
         if (!motorista) return nullptr;
         for (Veiculo* v : motorista->get_veiculos()) {
-            if (v && v->get_placa() == placa) { // Adicionado 'v &&' para seguranca
+            if (v && v->get_placa() == placa) {
                 return v;
             }
         }
@@ -930,7 +1258,7 @@ namespace ufmg_carona {
                 std::string is_motorista_str = campos[9];
                 
                 std::string cnh_numero_lida;
-                if (campos.size() >= 11) { // Mudado para >= para evitar segfault se houver mais campos por engano
+                if (campos.size() >= 11) {
                     cnh_numero_lida = campos[10];
                 }
 
@@ -944,7 +1272,6 @@ namespace ufmg_carona {
                     std::cerr << "ERRO: Valor de 'genero' fora do limite para CPF " << cpf << " no usuarios.txt. Ignorando usuario. Erro: " << e.what() << std::endl;
                     continue;
                 }
-
 
                 bool eh_motorista_do_arquivo;
                 try {
@@ -960,8 +1287,7 @@ namespace ufmg_carona {
                 Usuario* novo_usuario_carregado = nullptr;
 
                 if (eh_motorista_do_arquivo) {
-                    // Cuidado: Motorista só é válido se tiver CNH lida
-                    if (!cnh_numero_lida.empty() && cnh_numero_lida != "0") { // Verifica se a CNH não está vazia ou "0"
+                    if (!cnh_numero_lida.empty() && cnh_numero_lida != "0") {
                         novo_usuario_carregado = new Motorista(nome, cpf, telefone, data_nascimento, email, senha, gen,
                                                              vinculo_tipo, detalhe_vinculo, cnh_numero_lida);
                     } else {
@@ -984,7 +1310,6 @@ namespace ufmg_carona {
             std::cout << "-> Arquivo usuarios.txt nao encontrado. Nao ha usuarios para carregar." << std::endl;
         }
 
-        // Carregar veiculos do veiculos.txt
         std::ifstream arquivo_veiculos("veiculos.txt");
         if (arquivo_veiculos.is_open()) {
             std::string linha_veiculo;
@@ -1014,8 +1339,7 @@ namespace ufmg_carona {
                 if (motorista_assoc && motorista_assoc->is_motorista()) {
                     Motorista* m_ptr = dynamic_cast<Motorista*>(motorista_assoc);
                     if (m_ptr) {
-                        // Antes de adicionar, verificar se o veículo já existe para o motorista
-                        if (m_ptr->buscar_veiculo_por_placa(placa_veic) == nullptr) {
+                        if (m_ptr->buscar_veiculo_por_placa(placa_veic) == nullptr) { // Verificar se ja existe
                             m_ptr->adicionar_veiculo(new Veiculo(placa_veic, marca_veic, modelo_veic, cor_veic, lugares_veic));
                         } else {
                             std::cerr << "AVISO: Veiculo com placa " << placa_veic << " ja existe para o motorista " << cpf_motorista_veic << ". Nao recarregado." << std::endl;
@@ -1041,7 +1365,7 @@ namespace ufmg_carona {
                 std::getline(ss, destino, ';');
                 std::getline(ss, data, ';');
                 std::getline(ss, apenas_mulheres_str, ';');
-                std::getline(ss, placa_veiculo_carona); // Novo campo
+                std::getline(ss, placa_veiculo_carona);
 
                 bool apenas_mulheres_lida;
                 try {
@@ -1081,6 +1405,7 @@ namespace ufmg_carona {
         } else {
             std::cout << "-> Arquivo caronas.txt nao encontrado. Nao ha caronas para carregar." << std::endl;
         }
+        carregar_dados_rotinas(); // Adicionado para carregar rotinas
     }
 
     void Sistema::salvar_dados_usuarios() {
@@ -1104,14 +1429,14 @@ namespace ufmg_carona {
             if (u->is_motorista()) {
                 Motorista* m_ptr = dynamic_cast<Motorista*>(u);
                 if (m_ptr) {
-                    arquivo_usuarios << "1;" // Flag: eh motorista
-                                     << m_ptr->get_cnh_numero(); // CNH do motorista (ultimo campo da line se eh motorista)
+                    arquivo_usuarios << "1;"
+                                     << m_ptr->get_cnh_numero();
                 } else {
-                    arquivo_usuarios << "0"; // Nao eh motorista (ou erro)
+                    arquivo_usuarios << "0";
                     std::cerr << "AVISO: Usuario " << u->get_cpf() << " indicou ser motorista mas cast falhou. Nao salvando CNH." << std::endl;
                 }
             } else {
-                arquivo_usuarios << "0"; // Flag: nao eh motorista
+                arquivo_usuarios << "0";
             }
             arquivo_usuarios << std::endl;
         }
@@ -1148,6 +1473,102 @@ namespace ufmg_carona {
         std::cout << "-> Veiculos salvos em veiculos.txt." << std::endl;
     }
 
+    void Sistema::salvar_dados_rotinas() { // Implementacao adicionada
+        std::ofstream arquivo_rotinas("rotinas.txt", std::ios::trunc);
+        if (!arquivo_rotinas.is_open()) {
+            std::cerr << "ERRO: Nao foi possivel abrir o arquivo rotinas.txt para salvar dados." << std::endl;
+            return;
+        }
+
+        int rotinas_salvas = 0;
+        for (const auto& u : _usuarios) {
+            if (u->is_motorista()) {
+                Motorista* m_ptr = dynamic_cast<Motorista*>(u);
+                if (m_ptr) {
+                    for (const auto& rotina : m_ptr->get_rotinas()) {
+                        arquivo_rotinas << u->get_cpf() << ";";
+                        const std::vector<DiaDaSemana>& dias = rotina.get_dias();
+                        for (size_t i = 0; i < dias.size(); ++i) {
+                            arquivo_rotinas << static_cast<int>(dias[i]);
+                            if (i < dias.size() - 1) {
+                                arquivo_rotinas << ",";
+                            }
+                        }
+                        arquivo_rotinas << ";"
+                                        << rotina.get_horario_saida() << ";"
+                                        << rotina.get_local_saida_padrao() << ";"
+                                        << rotina.get_destino_final() << ";"
+                                        << rotina.get_placa_veiculo_usado() << ";"
+                                        << (rotina.get_apenas_mulheres() ? "1" : "0") << std::endl;
+                        rotinas_salvas++;
+                    }
+                }
+            }
+        }
+        arquivo_rotinas.close();
+        std::cout << "-> " << rotinas_salvas << " rotinas salvas em rotinas.txt." << std::endl;
+    }
+
+    void Sistema::carregar_dados_rotinas() { // Implementacao adicionada
+        std::ifstream arquivo_rotinas("rotinas.txt");
+        if (arquivo_rotinas.is_open()) {
+            std::string linha;
+            int rotinas_carregadas = 0;
+            while (std::getline(arquivo_rotinas, linha)) {
+                std::stringstream ss(linha);
+                std::string cpf_motorista_rotina, dias_str, horario, origem, destino, placa_veiculo_str, apenas_mulheres_str;
+
+                std::getline(ss, cpf_motorista_rotina, ';');
+                std::getline(ss, dias_str, ';');
+                std::getline(ss, horario, ';');
+                std::getline(ss, origem, ';');
+                std::getline(ss, destino, ';');
+                std::getline(ss, placa_veiculo_str, ';');
+                std::getline(ss, apenas_mulheres_str);
+
+                std::vector<DiaDaSemana> dias_lidos;
+                std::stringstream ss_dias(dias_str);
+                std::string dia_token;
+                while (std::getline(ss_dias, dia_token, ',')) {
+                    try {
+                        dias_lidos.push_back(static_cast<DiaDaSemana>(std::stoi(dia_token)));
+                    } catch (const std::invalid_argument& e) {
+                        std::cerr << "ERRO: Valor invalido para dia da semana em rotinas.txt para motorista " << cpf_motorista_rotina << ". Ignorando dia. Erro: " << e.what() << std::endl;
+                    } catch (const std::out_of_range& e) {
+                        std::cerr << "ERRO: Valor de dia da semana fora do limite em rotinas.txt para motorista " << cpf_motorista_rotina << ". Ignorando dia. Erro: " << e.what() << std::endl;
+                    }
+                }
+
+                bool apenas_mulheres_lida;
+                try {
+                    apenas_mulheres_lida = (std::stoi(apenas_mulheres_str) == 1);
+                } catch (const std::invalid_argument& e) {
+                    std::cerr << "ERRO: Valor invalido para 'apenas_mulheres' em rotinas.txt para motorista " << cpf_motorista_rotina << ". Ignorando rotina. Erro: " << e.what() << std::endl;
+                    continue;
+                } catch (const std::out_of_range& e) {
+                    std::cerr << "ERRO: Valor de 'apenas_mulheres' fora do limite para motorista " << cpf_motorista_rotina << " em rotinas.txt. Ignorando rotina. Erro: " << e.what() << std::endl;
+                    continue;
+                }
+
+                Usuario* motorista_assoc = buscar_usuario_por_cpf(cpf_motorista_rotina);
+                if (motorista_assoc && motorista_assoc->is_motorista()) {
+                    Motorista* m_ptr = dynamic_cast<Motorista*>(motorista_assoc);
+                    if (m_ptr) {
+                        m_ptr->adicionar_rotina(Rotina(dias_lidos, horario, origem, destino, placa_veiculo_str, apenas_mulheres_lida));
+                        rotinas_carregadas++;
+                    }
+                } else {
+                    std::cerr << "AVISO: Motorista com CPF " << cpf_motorista_rotina << " para rotina " << origem << "->" << destino << " nao encontrado ou nao e motorista valido. Rotina nao carregada." << std::endl;
+                }
+            }
+            arquivo_rotinas.close();
+            std::cout << "-> " << rotinas_carregadas << " rotinas carregados." << std::endl;
+        } else {
+            std::cout << "-> Arquivo rotinas.txt nao encontrado. Nao ha rotinas para carregar." << std::endl;
+        }
+    }
+
+
     Carona* Sistema::buscar_carona_por_id(int id) {
         for (auto& carona : _caronas) {
             if (carona.get_id() == id) {
@@ -1159,8 +1580,6 @@ namespace ufmg_carona {
 
     void Sistema::enviar_notificacao(Usuario* usuario, const std::string& mensagem) {
         if (usuario) {
-            // AQUI VOCE PODE ADICIONAR A NOTIFICACAO REAL AO OBJETO USUARIO
-            // usuario->adicionar_notificacao(Notificacao(mensagem));
             std::cout << "[NOTIFICACAO para " << usuario->get_nome() << "]: " << mensagem << std::endl;
         }
     }
@@ -1176,7 +1595,6 @@ namespace ufmg_carona {
             return false;
         }
 
-        // Verifica se ja existe uma solicitacao PENDENTE ou ACEITA para esta carona
         for (const auto& solicitacao : _solicitacoes) {
             if (solicitacao->get_passageiro() == passageiro &&
                 solicitacao->get_carona()->get_id() == carona.get_id()) {

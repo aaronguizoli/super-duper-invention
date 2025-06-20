@@ -6,11 +6,10 @@
 namespace ufmg_carona {
     /**
      * @class Pagamento
-     * @brief Gerencia o cálculo e o estado de um pagamento, simulando uma taxa variável.
+     * @brief Gerencia o calculo e o estado de um pagamento, simulando uma taxa variavel.
      */
     class Pagamento {
     private:
-        // ATRIBUTOS ADICIONADOS AQUI
         double _valor;
         bool _efetuado;
         static const double TAXA_BASE;
@@ -21,11 +20,9 @@ namespace ufmg_carona {
         
         static double calcular_valor(Zona origem, Zona destino);
         
-        // MÉTODOS GETTERS ADICIONADOS AQUI
         double get_valor() const;
         bool is_efetuado() const;
 
-        // MÉTODO SETTER ADICIONADO
         void efetuar_pagamento();
     };
 }

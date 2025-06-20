@@ -10,22 +10,20 @@
 namespace ufmg_carona {
     int Carona::_proximo_id = 1;
 
-    // Construtor da Carona ATUALIZADO para receber o veiculo_usado
     Carona::Carona(std::string origem, std::string destino, std::string data, Usuario* motorista, Veiculo* veiculo_usado, bool apenas_mulheres, TipoCarona tipo)
         : _id(gerar_proximo_id()),
           _origem(origem),
           _destino(destino),
           _data_hora_partida(data),
           _motorista(motorista),
-          _veiculo_usado(veiculo_usado), // Inicializa o novo atributo
+          _veiculo_usado(veiculo_usado),
           _passageiros(),
           _solicitacoes_pendentes(),
-          _vagas_disponiveis(0), // Valor inicial seguro
+          _vagas_disponiveis(0),
           _apenas_mulheres(apenas_mulheres),
           _status(StatusCarona::AGUARDANDO),
           _tipo(tipo) {
 
-        // As vagas disponiveis sao diretamente do veiculo_usado
         if (veiculo_usado) {
             _vagas_disponiveis = veiculo_usado->get_lugares() - 1;
         } else {
@@ -50,12 +48,10 @@ namespace ufmg_carona {
         std::cout << "De: " << _origem << " -> Para: " << _destino << std::endl;
         std::cout << "Data/Hora: " << _data_hora_partida << std::endl;
         
-        // ADICIONADO: Verificacao de nullptr para _motorista
         if (_motorista) {
             std::cout << "Motorista: " << _motorista->get_nome() << " | Avaliacao: "
                       << std::fixed << std::setprecision(1) << _motorista->get_media_avaliacoes() << " estrelas" << std::endl;
             
-            // ADICIONADO: Verificacao de nullptr para _veiculo_usado
             if (_veiculo_usado) {
                 std::cout << "  Veiculo: " << _veiculo_usado->get_marca() << " " << _veiculo_usado->get_modelo()
                           << ", Cor: " << _veiculo_usado->get_cor() << ", Placa: " << _veiculo_usado->get_placa() << std::endl;
@@ -72,10 +68,9 @@ namespace ufmg_carona {
     }
 
     void Carona::exibir_info_detalhada() const {
-        exibir_info(); // Já contém as verificações
+        exibir_info();
         std::cout << "Passageiros confirmados: " << _passageiros.size() << std::endl;
         std::cout << "Solicitacoes pendentes: " << _solicitacoes_pendentes.size() << std::endl;
-        // Poderiamos iterar e exibir os passageiros se desejado
     }
 
     void Carona::adicionar_solicitacao(Solicitacao* solicitacao) {

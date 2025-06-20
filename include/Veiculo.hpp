@@ -12,13 +12,11 @@ namespace ufmg_carona {
         int get_lugares() const;
         void exibir_info() const;
         
-        // NOVOS GETTERS ADICIONADOS AQUI
         const std::string& get_placa() const;
         const std::string& get_marca() const;
         const std::string& get_modelo() const;
         const std::string& get_cor() const;
 
-        // NOVOS SETTERS PARA EDICAO
         void set_marca(const std::string& marca);
         void set_modelo(const std::string& modelo);
         void set_cor(const std::string& cor);
