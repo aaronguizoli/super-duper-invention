@@ -2,27 +2,31 @@
 #define SISTEMA_HPP
 #include <vector>
 #include <string>
-// #include <memory> // Removido
+#include <tuple> // Para usar std::tuple na funcao de busca de dados
+#include <fstream> // Para manipulacao de arquivos
 #include "Usuario.hpp"
 #include "Carona.hpp"
 #include "Solicitacao.hpp"
+#include "Genero.hpp"
 
 namespace ufmg_carona {
     class Sistema {
     private:
-        // ALTERAÇÃO: De std::vector<std::shared_ptr<Usuario>> para std::vector<Usuario*>
-        std::vector<Usuario*> _usuarios; // Sistema AGORA é o proprietário desses objetos
-        std::vector<Carona> _caronas; // Caronas são objetos diretos, não ponteiros, gerenciado pelo vector
-        // ALTERAÇÃO: De std::vector<std::shared_ptr<Solicitacao>> para std::vector<Solicitacao*>
-        std::vector<Solicitacao*> _solicitacoes; // Sistema AGORA é o proprietário desses objetos
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
-        Usuario* _usuario_logado; // Apenas um ponteiro de observação, Sistema não é proprietário via este membro
+        std::vector<Usuario*> _usuarios;
+        std::vector<Carona> _caronas;
+        std::vector<Solicitacao*> _solicitacoes;
+        Usuario* _usuario_logado;
 
         void carregar_dados_iniciais();
-        void salvar_dados(); // Se implementado, precisaria salvar corretamente os dados dos ponteiros brutos.
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
+        void salvar_dados_usuarios(); // NOVO: Funcao para salvar os usuarios no usuarios.txt
+
         Usuario* buscar_usuario_por_cpf(const std::string& cpf);
-        Carona* buscar_carona_por_id(int id); // Já era ponteiro bruto
+        Carona* buscar_carona_por_id(int id);
+
+        // NOVO: Funcao para buscar dados completos de um usuario no arquivo dados_ufmg.txt
+        // Retorno: tuple<encontrado, nome, cpf, data_nascimento, vinculo, detalhe>
+        std::tuple<bool, std::string, std::string, std::string, std::string, std::string> buscar_dados_ufmg_por_cpf(const std::string& cpf_buscado);
+
 
         void exibir_menu();
         void processar_comando(const std::string& comando);
@@ -37,15 +41,11 @@ namespace ufmg_carona {
         void fluxo_status_caronas();
         void fluxo_cadastrar_veiculo();
 
-        // Métodos auxiliares
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
         void enviar_notificacao(Usuario* usuario, const std::string& mensagem);
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
         bool pode_solicitar_carona(Usuario* passageiro, const Carona& carona);
 
     public:
         Sistema();
-        // NOVO: Destrutor para liberar a memória de todos os Usuários e Solicitações.
         ~Sistema();
         void executar();
     };

@@ -1,0 +1,5 @@
+Ana Souza;11122233344;01/01/2000;aluno;Ciencia da Computacao
+Bruno Gomes;22233344455;15/05/1985;funcionario;DCC
+Carlos Silva;33344455566;10/12/1995;aluno;Engenharia Eletrica
+Daniela Costa;44455566677;20/07/1978;funcionario;RH
+Eduardo Pereira;55566677788;05/03/2001;aluno;Medicina
