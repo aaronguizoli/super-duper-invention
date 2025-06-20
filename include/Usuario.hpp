@@ -20,19 +20,26 @@ namespace ufmg_carona {
         Veiculo _veiculo;
         bool _possui_veiculo;
         bool _deseja_oferecer_caronas;
+        // NOVOS ATRIBUTOS para substituir Aluno/Funcionario
+        std::string _vinculo_tipo; // Ex: "aluno", "funcionario"
+        std::string _detalhe_vinculo; // Ex: "Ciencia da Computacao", "DCC" (ou "0" para funcionario se for o caso)
 
     public:
-        Usuario(std::string nome, std::string cpf, std::string telefone, std::string data_nascimento, std::string email, std::string senha, Genero genero, bool deseja_oferecer_caronas);
+        // Construtor ATUALIZADO com os novos campos de vinculo
+        Usuario(std::string nome, std::string cpf, std::string telefone, std::string data_nascimento, std::string email, std::string senha, Genero genero, bool deseja_oferecer_caronas, std::string vinculo_tipo, std::string detalhe_vinculo);
 
         virtual ~Usuario();
 
-        virtual std::string get_vinculo() const = 0;
-        // NOVO: Getters para salvar dados
+        // Implementacoes de getters que eram virtuais puros (agora nao mais virtuais)
+        std::string get_vinculo() const;
+        std::string get_vinculo_raw() const;
+        std::string get_detalhe_vinculo() const;
+
+        // Getters para salvar dados
         const std::string& get_email() const;
         const std::string& get_senha() const;
         Genero get_genero() const;
-        virtual std::string get_vinculo_raw() const = 0; // Para obter "aluno" ou "funcionario"
-        virtual std::string get_detalhe_vinculo() const = 0; // Para obter "curso" ou "setor"
+
 
         const std::string& get_cpf() const;
         const std::string& get_nome() const;

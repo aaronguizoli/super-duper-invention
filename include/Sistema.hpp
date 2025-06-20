@@ -2,9 +2,9 @@
 #define SISTEMA_HPP
 #include <vector>
 #include <string>
-#include <tuple> // Para usar std::tuple na funcao de busca de dados
-#include <fstream> // Para manipulacao de arquivos
-#include "Usuario.hpp"
+#include <tuple>
+#include <fstream>
+#include "Usuario.hpp" // Apenas Usuario sera usado agora
 #include "Carona.hpp"
 #include "Solicitacao.hpp"
 #include "Genero.hpp"
@@ -18,12 +18,12 @@ namespace ufmg_carona {
         Usuario* _usuario_logado;
 
         void carregar_dados_iniciais();
-        void salvar_dados_usuarios(); // NOVO: Funcao para salvar os usuarios no usuarios.txt
+        void salvar_dados_usuarios();
 
         Usuario* buscar_usuario_por_cpf(const std::string& cpf);
         Carona* buscar_carona_por_id(int id);
 
-        // NOVO: Funcao para buscar dados completos de um usuario no arquivo dados_ufmg.txt
+        // Funcao para buscar dados completos de um usuario no arquivo dados_ufmg.txt
         // Retorno: tuple<encontrado, nome, cpf, data_nascimento, vinculo, detalhe>
         std::tuple<bool, std::string, std::string, std::string, std::string, std::string> buscar_dados_ufmg_por_cpf(const std::string& cpf_buscado);
 

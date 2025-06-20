@@ -6,8 +6,11 @@
 #include <iomanip>
 
 namespace ufmg_carona {
-    Usuario::Usuario(std::string n, std::string c, std::string tel, std::string dt_nasc, std::string e, std::string s, Genero g, bool deseja_motorista)
-        : _nome(n), _cpf(c), _email(e), _senha(s), _telefone(tel), _data_nascimento(dt_nasc), _genero(g), _possui_veiculo(false), _deseja_oferecer_caronas(deseja_motorista) {}
+    // Construtor ATUALIZADO: 'vinculo_tipo' e 'detalhe_vinculo' adicionados
+    Usuario::Usuario(std::string n, std::string c, std::string tel, std::string dt_nasc, std::string e, std::string s, Genero g, bool deseja_motorista, std::string vinculo_tipo, std::string detalhe_vinculo)
+        : _nome(n), _cpf(c), _email(e), _senha(s), _telefone(tel), _data_nascimento(dt_nasc), _genero(g),
+          _possui_veiculo(false), _deseja_oferecer_caronas(deseja_motorista),
+          _vinculo_tipo(vinculo_tipo), _detalhe_vinculo(detalhe_vinculo) {}
 
     Usuario::~Usuario() {
         for (Avaliacao* aval : _avaliacoes_recebidas) {
@@ -23,11 +26,22 @@ namespace ufmg_carona {
     bool Usuario::is_motorista() const { return _possui_veiculo; }
     const Veiculo& Usuario::get_veiculo() const { return _veiculo; }
 
-    // Implementação dos novos getters
+    // Implementação dos getters que antes eram virtuais puros ou estavam nas subclasses
+    std::string Usuario::get_vinculo() const {
+        if (_vinculo_tipo == "aluno") {
+            return "Aluno do curso de " + _detalhe_vinculo;
+        } else if (_vinculo_tipo == "funcionario") {
+            return "Funcionario do setor " + _detalhe_vinculo;
+        }
+        return "Vinculo desconhecido";
+    }
+    std::string Usuario::get_vinculo_raw() const { return _vinculo_tipo; }
+    std::string Usuario::get_detalhe_vinculo() const { return _detalhe_vinculo; }
+
+    // Implementação dos outros getters
     const std::string& Usuario::get_email() const { return _email; }
     const std::string& Usuario::get_senha() const { return _senha; }
     Genero Usuario::get_genero() const { return _genero; }
-    // get_vinculo_raw() e get_detalhe_vinculo() sao virtuais puros, implementados nas classes derivadas.
 
     double Usuario::get_media_avaliacoes() const {
         if (_avaliacoes_recebidas.empty()) return 0.0;

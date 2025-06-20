@@ -1,1 +1,3 @@
 11122233344;Ana Souza;31985662384;01/01/2000;ricardo@gmail;123;1;0;aluno;Ciencia da Computacao
+14095366613;Ricardo Rocha;31985662384;05/03/2002;ricardorochaufmg@gmail.com;123;0;1;aluno;Engenharia de Controle e Automacao
+44455566677;Daniela Costa;3333333;20/07/1978;teste;123;1;1;funcionario;0

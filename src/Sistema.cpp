@@ -1,7 +1,7 @@
 #include "Sistema.hpp"
 #include "Excecoes.hpp"
-#include "Aluno.hpp"
-#include "Funcionario.hpp"
+// REMOVIDO: #include "Aluno.hpp"
+// REMOVIDO: #include "Funcionario.hpp"
 #include "CaronaFactory.hpp"
 #include "Veiculo.hpp"
 #include "Solicitacao.hpp"
@@ -12,7 +12,7 @@
 #include <limits>
 #include <algorithm>
 #include <map>
-#include <tuple> // Incluido para std::tuple
+#include <tuple>
 
 namespace ufmg_carona {
 
@@ -125,15 +125,8 @@ namespace ufmg_carona {
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         deseja_oferecer_caronas = (deseja_caronas_char == 's' || deseja_caronas_char == 'S');
 
-        Usuario* novo_usuario = nullptr;
-
-        if (vinculo_ufmg == "aluno") {
-            novo_usuario = new Aluno(nome_ufmg, cpf_digitado, telefone_digitado, data_nascimento_ufmg, email_digitado, senha_digitada, gen_digitado, detalhe_ufmg, deseja_oferecer_caronas);
-        } else if (vinculo_ufmg == "funcionario") {
-            novo_usuario = new Funcionario(nome_ufmg, cpf_digitado, telefone_digitado, data_nascimento_ufmg, email_digitado, senha_digitada, gen_digitado, detalhe_ufmg, deseja_oferecer_caronas);
-        } else {
-            throw AppExcecao("Vinculo invalido no arquivo da UFMG para o CPF informado.");
-        }
+        // INSTANCIA APENAS USUARIO AGORA
+        Usuario* novo_usuario = new Usuario(nome_ufmg, cpf_digitado, telefone_digitado, data_nascimento_ufmg, email_digitado, senha_digitada, gen_digitado, deseja_oferecer_caronas, vinculo_ufmg, detalhe_ufmg);
 
         if (deseja_oferecer_caronas) {
             std::cout << "--- Cadastro de Veiculo ---" << std::endl;
@@ -148,8 +141,8 @@ namespace ufmg_carona {
             std::cout << "Veiculo cadastrado com sucesso durante o cadastro!" << std::endl;
         }
 
-        _usuarios.push_back(novo_usuario); // Adiciona o ponteiro bruto à lista
-        salvar_dados_usuarios(); // Salva o novo usuário no usuarios.txt
+        _usuarios.push_back(novo_usuario);
+        salvar_dados_usuarios(); // Salva o novo usuario no usuarios.txt
         std::cout << "Cadastro realizado com sucesso!" << std::endl;
     }
 
@@ -185,7 +178,7 @@ namespace ufmg_carona {
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         _usuario_logado->cadastrar_veiculo(Veiculo(placa, marca, modelo, cor, lugares));
         std::cout << "Veiculo cadastrado com sucesso!" << std::endl;
-        salvar_dados_usuarios(); // Salva a atualização do veículo
+        salvar_dados_usuarios(); // Salva a atualizacao do veiculo
     }
 
     void Sistema::fluxo_oferecer_carona() {
@@ -233,13 +226,12 @@ namespace ufmg_carona {
         return nullptr;
     }
     
-    // NOVO: Funcao para buscar dados do usuario no arquivo dados_ufmg.txt
+    // Funcao para buscar dados do usuario no arquivo dados_ufmg.txt
     // Retorno: tuple<encontrado, nome, cpf, data_nascimento, vinculo, detalhe>
     std::tuple<bool, std::string, std::string, std::string, std::string, std::string> Sistema::buscar_dados_ufmg_por_cpf(const std::string& cpf_buscado) {
         std::ifstream arquivo_ufmg("dados_ufmg.txt");
         if (!arquivo_ufmg.is_open()) {
             std::cerr << "ERRO: Nao foi possivel abrir o arquivo dados_ufmg.txt." << std::endl;
-            // Retorna tupla com false e strings vazias para indicar erro ou nao encontrado
             return std::make_tuple(false, "", "", "", "", "");
         }
 
@@ -252,89 +244,45 @@ namespace ufmg_carona {
             std::getline(ss, cpf_lido, ';');
             std::getline(ss, data_nascimento_lida, ';');
             std::getline(ss, vinculo_lido, ';');
-            std::getline(ss, detalhe_lido); // Último campo da linha, sem delimitador
+            std::getline(ss, detalhe_lido);
 
             if (cpf_lido == cpf_buscado) {
                 arquivo_ufmg.close();
-                // Retorna true e os dados lidos
                 return std::make_tuple(true, nome_lido, cpf_lido, data_nascimento_lida, vinculo_lido, detalhe_lido);
             }
         }
         arquivo_ufmg.close();
-        return std::make_tuple(false, "", "", "", "", ""); // CPF não encontrado
+        return std::make_tuple(false, "", "", "", "", "");
     }
 
     void Sistema::carregar_dados_iniciais() {
         std::ifstream arquivo_usuarios("usuarios.txt");
         if (arquivo_usuarios.is_open()) {
             std::string linha;
-            // Campos que serão lidos do usuarios.txt
             std::string cpf, nome, telefone, data_nascimento, email, senha, vinculo, detalhe;
             std::string gen_str, deseja_caronas_str;
-            std::string endereco_dummy; // Campo dummy para ler o endereco antigo se existir
 
             while (std::getline(arquivo_usuarios, linha)) {
                 std::stringstream ss(linha);
                 
-                // Leitura dos campos na ordem esperada do usuarios.txt
+                // Leitura dos campos na nova ordem do usuarios.txt (sem endereco)
                 std::getline(ss, cpf, ';');
                 std::getline(ss, nome, ';');
                 std::getline(ss, telefone, ';');
                 std::getline(ss, data_nascimento, ';');
-                
-                // Tentativa de ler o campo de endereco. Se a linha tem menos campos (nova estrutura),
-                // este getline falhara para o proximo campo.
-                // Uma forma robusta seria verificar o numero de delimitadores ou usar um formato mais flexivel (JSON/XML).
-                // Para manter a simplicidade com CSV, precisamos de uma logica que se adapte.
-                // A abordagem atual lera o proximo campo como endereco se ele nao for email.
-                // Vamos assumir que a primeira leitura para usuario.txt carregará a estrutura ANTIGA.
-                // Para a nova estrutura, precisamos de um mecanismo para ignorar ou preencher.
-                // Como _endereco foi removido de Usuario, ele nao sera mais usado no objeto,
-                // mas a leitura precisa consumir o campo.
-                // Uma solução para transição é ler o campo 'endereco' para uma variável dummy.
-                
-                // Verifica o número de campos na linha para adaptar a leitura
-                size_t num_separators = std::count(linha.begin(), linha.end(), ';');
-
-                if (num_separators == 10) { // Antiga estrutura com endereco
-                    std::getline(ss, endereco_dummy, ';'); // Le o endereco para uma dummy
-                    std::getline(ss, email, ';');
-                    std::getline(ss, senha, ';');
-                    std::getline(ss, gen_str, ';');
-                    std::getline(ss, deseja_caronas_str, ';');
-                    std::getline(ss, vinculo, ';');
-                    std::getline(ss, detalhe);
-                } else if (num_separators == 9) { // Nova estrutura sem endereco
-                    // std::getline(ss, email, ';'); // Isso causaria erro se o proximo campo fosse outro
-                    // Para garantir que nao le um campo "errado", precisamos ser mais precisos.
-                    // A nova estrutura significa que o campo apos data_nascimento é email.
-                    // Para evitar confusao, redefinir a leitura completa da linha.
-                    // Se o objetivo é que carregar_dados_iniciais sempre leia a NOVA estrutura,
-                    // entao o arquivo original usuarios.txt precisa ser migrado ou adaptado.
-
-                    // Pelo enunciado, usuarios.txt VAI MUDAR. Entao, a leitura deve refletir essa nova estrutura.
-                    // Se a linha tem 9 separadores, significa que o campo seguinte a data_nascimento é email.
-                    std::getline(ss, email, ';');
-                    std::getline(ss, senha, ';');
-                    std::getline(ss, gen_str, ';');
-                    std::getline(ss, deseja_caronas_str, ';');
-                    std::getline(ss, vinculo, ';');
-                    std::getline(ss, detalhe);
-                } else {
-                    std::cerr << "AVISO: Linha com formato invalido no usuarios.txt: " << linha << std::endl;
-                    continue; // Pula a linha invalida
-                }
+                std::getline(ss, email, ';');
+                std::getline(ss, senha, ';');
+                std::getline(ss, gen_str, ';');
+                std::getline(ss, deseja_caronas_str, ';');
+                std::getline(ss, vinculo, ';');
+                std::getline(ss, detalhe);
 
                 Genero gen = static_cast<Genero>(std::stoi(gen_str));
                 bool deseja_caronas_do_arquivo = (std::stoi(deseja_caronas_str) == 1);
 
-                Usuario* novo_usuario_carregado = nullptr;
-                if (vinculo == "aluno") {
-                    novo_usuario_carregado = new Aluno(nome, cpf, telefone, data_nascimento, email, senha, gen, detalhe, deseja_caronas_do_arquivo);
-                } else if (vinculo == "funcionario") {
-                    novo_usuario_carregado = new Funcionario(nome, cpf, telefone, data_nascimento, email, senha, gen, detalhe, deseja_caronas_do_arquivo);
-                }
-
+                // INSTANCIA APENAS USUARIO AGORA
+                Usuario* novo_usuario_carregado = new Usuario(nome, cpf, telefone, data_nascimento, email, senha, gen, deseja_caronas_do_arquivo, vinculo, detalhe);
+                
                 if (novo_usuario_carregado) {
                     _usuarios.push_back(novo_usuario_carregado);
                     if (deseja_caronas_do_arquivo && !novo_usuario_carregado->is_motorista()) {
@@ -375,9 +323,8 @@ namespace ufmg_carona {
         }
     }
 
-    // NOVO: Funcao para salvar todos os usuarios na lista _usuarios para o arquivo usuarios.txt
     void Sistema::salvar_dados_usuarios() {
-        std::ofstream arquivo_usuarios("usuarios.txt", std::ios::trunc); // Abre para escrita, truncando (limpando) o arquivo
+        std::ofstream arquivo_usuarios("usuarios.txt", std::ios::trunc);
         if (!arquivo_usuarios.is_open()) {
             std::cerr << "ERRO: Nao foi possivel abrir o arquivo usuarios.txt para salvar dados." << std::endl;
             return;
@@ -389,12 +336,12 @@ namespace ufmg_carona {
                              << u->get_nome() << ";"
                              << u->get_telefone() << ";"
                              << u->get_data_nascimento() << ";"
-                             << u->get_email() << ";" // NOVO: get_email() e get_senha() precisam ser adicionados em Usuario.hpp/cpp
+                             << u->get_email() << ";"
                              << u->get_senha() << ";"
-                             << static_cast<int>(u->get_genero()) << ";" // Assumindo que Genero pode ser convertido para int
+                             << static_cast<int>(u->get_genero()) << ";"
                              << (u->get_deseja_oferecer_caronas() ? "1" : "0") << ";"
-                             << u->get_vinculo_raw() << ";" // NOVO: get_vinculo_raw() para obter apenas "aluno" ou "funcionario"
-                             << u->get_detalhe_vinculo() // NOVO: get_detalhe_vinculo() para obter "curso" ou "setor"
+                             << u->get_vinculo_raw() << ";" // Agora retorna "aluno" ou "funcionario"
+                             << u->get_detalhe_vinculo() // Agora retorna curso ou setor
                              << std::endl;
         }
         arquivo_usuarios.close();
