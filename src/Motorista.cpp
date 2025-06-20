@@ -1,6 +1,6 @@
 #include "Motorista.hpp"
 #include <iostream>
-#include <algorithm>
+#include <algorithm> // Para std::remove_if e std::for_each
 
 namespace ufmg_carona {
     // Construtor do Motorista - Ordem da lista de inicializacao ajustada
@@ -21,13 +21,20 @@ namespace ufmg_carona {
 
     void Motorista::adicionar_veiculo(Veiculo* veiculo) {
         if (veiculo) {
+            // Verifica se o veiculo ja existe pela placa para evitar duplicatas e vazamentos
+            for (const auto& v_existente : _veiculos) {
+                if (v_existente->get_placa() == veiculo->get_placa()) {
+                    std::cout << "ERRO: Veiculo com esta placa ja existe para este motorista. Nao adicionado." << std::endl;
+                    delete veiculo; // Evita vazamento de memória se o veículo já existe
+                    return;
+                }
+            }
             _veiculos.push_back(veiculo);
             std::cout << "Veiculo " << veiculo->get_placa() << " adicionado para o motorista " << get_nome() << "." << std::endl;
         }
     }
 
-    // ALTERACAO CRITICA: is_motorista() agora retorna true se o Motorista tem CNH, nao apenas se tem veiculos.
-    bool Motorista::is_motorista() const { return !_cnh_numero.empty(); } // Retorna true se a CNH nao estiver vazia
+    bool Motorista::is_motorista() const { return !_cnh_numero.empty(); }
 
     const std::string& Motorista::get_cnh_numero() const { return _cnh_numero; }
 
@@ -42,19 +49,20 @@ namespace ufmg_carona {
         return nullptr;
     }
 
-    // NOVO: Metodo para remover um veiculo
+    // Corrigido: Metodo para remover um veiculo
     bool Motorista::remover_veiculo(const std::string& placa) {
-        auto it = std::remove_if(_veiculos.begin(), _veiculos.end(),
-                                 [&placa](Veiculo* v) { return v->get_placa() == placa; });
-
-        if (it != _veiculos.end()) {
-            for (auto iter = it; iter != _veiculos.end(); ++iter) {
-                delete *iter; // Libera a memoria do objeto Veiculo
+        // Encontra o veículo a ser removido e apaga ele
+        auto it = _veiculos.begin();
+        while (it != _veiculos.end()) {
+            if ((*it)->get_placa() == placa) {
+                delete *it; // Libera a memória do objeto Veiculo antes de remover o ponteiro
+                it = _veiculos.erase(it); // Remove o ponteiro do vetor e avança o iterador
+                return true; // Veículo encontrado e removido
+            } else {
+                ++it;
             }
-            _veiculos.erase(it, _veiculos.end());
-            return true;
         }
-        return false;
+        return false; // Veículo não encontrado
     }
 
     void Motorista::imprimir_perfil() const {

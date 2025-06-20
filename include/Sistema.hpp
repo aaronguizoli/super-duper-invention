@@ -33,11 +33,14 @@ namespace ufmg_carona {
 
         // --- MÉTODOS DE MENU E FLUXO ---
         void exibir_menu(); // Menu principal (logado/nao logado)
+        void exibir_menu_inicial_nao_logado(); // NOVO: Menu inicial com numeros
         void exibir_menu_logado(); // Novo menu para usuario logado
         void exibir_menu_passageiro(); // Novo menu para passageiro
         void exibir_menu_motorista(); // Novo menu para motorista
         
-        void processar_comando(const std::string& comando_str); // Recebe o comando como string
+        // void processar_comando(const std::string& comando_str); // Esta será dividida
+        void processar_comando_logado(const std::string& comando_str); // NOVO: Logica para comandos de usuario logado
+
 
         // Fluxos de entrada/saida
         void fluxo_cadastro();
@@ -46,18 +49,19 @@ namespace ufmg_carona {
         
         // Fluxos principais (agora acessados via submenus ou diretamente)
         void fluxo_oferecer_carona();
-        // REMOVIDO: void fluxo_buscar_caronas(); // Integrado em solicitar_carona
         void fluxo_solicitar_carona(); // Agora inclui filtros
         void fluxo_gerenciar_solicitacoes();
         void fluxo_status_caronas();
         void fluxo_cadastrar_veiculo();
-        void fluxo_editar_perfil(); // NOVO: Edicao de dados do perfil
+        void fluxo_editar_perfil(); // Edicao de dados do perfil
         
-        // NOVO: Fluxos de submenus
+        // NOVOS: Fluxos de submenus para organização e fluxo hierárquico
         void fluxo_passageiro_menu();
         void fluxo_motorista_menu();
+        void fluxo_editar_perfil_ou_veiculos(); // Submenu para perfil e veiculos
+        void fluxo_tornar_motorista(); // Fluxo para um usuário se tornar motorista
         
-        // NOVO: Fluxos de gerenciamento de veiculos
+        // NOVOS: Fluxos de gerenciamento de veiculos
         void fluxo_gerenciar_veiculos();
         void fluxo_editar_veiculo(Motorista* motorista);
         void fluxo_excluir_veiculo(Motorista* motorista);
@@ -65,9 +69,9 @@ namespace ufmg_carona {
         void enviar_notificacao(Usuario* usuario, const std::string& mensagem);
         bool pode_solicitar_carona(Usuario* passageiro, const Carona& carona);
 
-        // NOVO: Funcao auxiliar para coletar input inteiro com validacao
+        // Funcao auxiliar para coletar input inteiro com validacao
         int coletar_int_input(const std::string& prompt, int min_val, int max_val);
-
+        
     public:
         Sistema();
         ~Sistema();

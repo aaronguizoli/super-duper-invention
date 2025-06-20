@@ -38,33 +38,77 @@ namespace ufmg_carona {
     void Sistema::executar() {
         std::cout << "== Sistema de Caronas UFMG iniciado ==" << std::endl;
         std::string comando_str;
-        // Variável 'comando_int' removida, pois não é utilizada diretamente aqui.
-        // A conversão e validação são feitas dentro de 'processar_comando'.
 
         while (true) {
-            exibir_menu();
+            // Exibir o menu inicial com números para o estado não logado
+            if (!_usuario_logado) {
+                exibir_menu_inicial_nao_logado();
+            } else {
+                exibir_menu_logado();
+            }
+            
             std::cout << "> ";
             std::getline(std::cin, comando_str);
 
-            if (comando_str == "sair" || std::cin.eof()) {
-                break;
-            }
             if (comando_str.empty()) {
                 continue;
             }
 
             try {
-                // A função processar_comando agora lida com a conversão e validação
-                processar_comando(comando_str); 
+                int comando_int = -1; // Valor padrão para comando não numérico
+                bool is_numeric = true;
+
+                try {
+                    comando_int = std::stoi(comando_str);
+                } catch (const std::invalid_argument&) {
+                    is_numeric = false;
+                }
+
+                if (!_usuario_logado) {
+                    // Lógica para comandos do menu inicial (não logado)
+                    if (is_numeric) {
+                        if (comando_int == 1) { // Cadastro
+                            fluxo_cadastro();
+                        } else if (comando_int == 2) { // Login
+                            fluxo_login();
+                        } else if (comando_int == 0) { // Sair
+                            std::cout << "Saindo do programa..." << std::endl;
+                            break; // Sai do loop principal
+                        } else {
+                            throw ComandoInvalidoException(comando_str);
+                        }
+                    } else if (comando_str == "cadastro") { // Retrocompatibilidade ou comandos textuais
+                        fluxo_cadastro();
+                    } else if (comando_str == "login") { // Retrocompatibilidade ou comandos textuais
+                        fluxo_login();
+                    } else if (comando_str == "sair") { // Retrocompatibilidade ou comandos textuais
+                        std::cout << "Saindo do programa..." << std::endl;
+                        break; // Sai do loop principal
+                    }
+                    else {
+                        throw ComandoInvalidoException(comando_str);
+                    }
+                } else {
+                    // Lógica para usuário logado
+                    // Note: processar_comando_logado já assume entrada numérica
+                    processar_comando_logado(comando_str);
+                }
+            } catch (const ComandoInvalidoException& e) {
+                std::cerr << "ERRO: " << e.what() << std::endl;
             } catch (const AppExcecao& e) {
+                if (std::string(e.what()) == "Sair") {
+                    // Este break é para a exceção lançada de processar_comando_logado
+                    break; 
+                }
                 std::cerr << "ERRO: " << e.what() << std::endl;
             } catch (const std::bad_alloc& e) {
                 std::cerr << "ERRO: Falha na alocacao de memoria: " << e.what() << std::endl;
+            } catch (const std::exception& e) { // Captura outras exceções inesperadas
+                std::cerr << "ERRO INESPERADO: " << e.what() << std::endl;
             }
         }
     }
 
-    // NOVO: Coleta input inteiro com validacao
     int Sistema::coletar_int_input(const std::string& prompt, int min_val, int max_val) {
         int valor;
         while (true) {
@@ -75,7 +119,7 @@ namespace ufmg_carona {
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             } else if (valor < min_val || valor > max_val) {
-                std::cout << "Numero fora do intervalo permitido (" << min_val << "-" << max_val << ")." << std::endl;
+                std::cout << "Numero fora do intervalo permitido (" << min_val << "-" << max_val << ")."<< (min_val == 0 ? " Digite 0 para voltar." : "") << std::endl;
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             } else {
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -84,66 +128,47 @@ namespace ufmg_carona {
         }
     }
 
-    // ALTERADO: processar_comando agora recebe uma string e decide o que fazer
-    void Sistema::processar_comando(const std::string& comando_str) {
-        if (!_usuario_logado) {
-            if (comando_str == "cadastro") {
-                fluxo_cadastro();
-            } else if (comando_str == "login") {
-                fluxo_login();
-            } else if (comando_str == "sair") {
-                // Capturado na funcao executar() para sair do loop principal
-            } else {
-                throw ComandoInvalidoException(comando_str);
-            }
-        } else {
-            // Se o usuario esta logado, esperamos comandos numericos ou "sair"
-            int comando_int;
-            try {
-                comando_int = std::stoi(comando_str);
-            } catch (const std::invalid_argument&) {
-                throw ComandoInvalidoException(comando_str); // Se nao for numero e estiver logado, eh invalido
-            }
+    // NOVA FUNÇÃO: Menu inicial com números para não logado
+    void Sistema::exibir_menu_inicial_nao_logado() {
+        std::cout << "\n--- Menu Principal ---" << std::endl;
+        std::cout << "(1) Cadastro | (2) Login | (0) Sair" << std::endl;
+    }
 
-            if (comando_int == 1) { // Perfil
-                _usuario_logado->imprimir_perfil();
-                int sub_comando_perfil = coletar_int_input("\n(1) Editar Perfil | (2) Gerenciar Veiculos (Motorista) | (0) Voltar\n> ", 0, 2);
-                if (sub_comando_perfil == 1) {
-                    fluxo_editar_perfil();
-                } else if (sub_comando_perfil == 2) {
-                    if (_usuario_logado->is_motorista()) {
-                        fluxo_gerenciar_veiculos();
-                    } else {
-                        std::cout << "Voce nao eh motorista para gerenciar veiculos." << std::endl;
-                    }
-                }
-            } else if (comando_int == 2) { // Passageiro
-                fluxo_passageiro_menu();
-            } else if (comando_int == 3) { // Motorista
-                if (_usuario_logado->is_motorista()) {
-                    fluxo_motorista_menu();
-                } else {
-                    std::cout << "Voce nao eh motorista para acessar este menu." << std::endl;
-                }
-            } else if (comando_int == 4) { // Logout
-                fluxo_logout();
-            } else if (comando_int == 5) { // Sair
-                // Capturado na funcao executar() para sair do loop principal
-                // Nao precisamos de um 'throw' aqui, apenas retornar
-            } else {
-                throw ComandoInvalidoException(comando_str);
-            }
+    // FUNÇÃO AUXILIAR: Extrair lógica de processamento de comando para usuário logado
+    void Sistema::processar_comando_logado(const std::string& comando_str) {
+        int comando_int;
+        try {
+            comando_int = std::stoi(comando_str);
+        } catch (const std::invalid_argument&) {
+            throw ComandoInvalidoException(comando_str); // Se não for número, é comando inválido
+        }
+
+        if (comando_int == 1) { // Perfil
+            _usuario_logado->imprimir_perfil();
+            fluxo_editar_perfil_ou_veiculos();
+        } else if (comando_int == 2) { // Passageiro
+            fluxo_passageiro_menu();
+        } else if (comando_int == 3) { // Motorista
+            // Motorista agora sempre direciona para fluxo_motorista_menu, que fará a checagem
+            fluxo_motorista_menu();
+        } else if (comando_int == 4) { // Logout
+            fluxo_logout();
+        } else if (comando_int == 5) { // Sair do programa
+            std::cout << "Saindo do programa..." << std::endl;
+            throw AppExcecao("Sair"); // Sinaliza para executar() sair
+        } else {
+            throw ComandoInvalidoException(comando_str);
         }
     }
 
-    // ALTERADO: exibir_menu() mostra apenas os comandos iniciais ou chama o menu logado
+    // A função exibir_menu() original será mantida com corpo vazio,
+    // já que as chamadas foram movidas para dentro de executar().
     void Sistema::exibir_menu() {
-        if (_usuario_logado) {
-            exibir_menu_logado();
-        } else {
-            std::cout << "\nComandos: cadastro, login, sair" << std::endl;
-        }
+        // Este método não é mais usado diretamente como um dispatcher.
+        // As chamadas foram substituídas por exibir_menu_inicial_nao_logado()
+        // e exibir_menu_logado() dentro de 'executar()'.
     }
+
 
     // NOVO: Menu para usuario logado
     void Sistema::exibir_menu_logado() {
@@ -176,14 +201,30 @@ namespace ufmg_carona {
                 } else if (comando == 2) {
                     fluxo_status_caronas();
                 }
+                // Se comando for 0, o loop termina e ele volta para o menu anterior
             } catch (const AppExcecao& e) {
                 std::cerr << "ERRO: " << e.what() << std::endl;
             }
-        } while (comando != 0);
+        } while (comando != 0); // Continua no loop ate o usuario escolher '0' para voltar
     }
 
     // NOVO: Fluxo do menu de motorista
     void Sistema::fluxo_motorista_menu() {
+        // Se o usuario NAO for motorista, oferece para ele se tornar um
+        if (!_usuario_logado->is_motorista()) {
+            std::cout << "Voce nao esta registrado como motorista." << std::endl;
+            char deseja_se_tornar;
+            std::cout << "Deseja se tornar um motorista? (s/n): ";
+            std::cin >> deseja_se_tornar;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+            if (deseja_se_tornar == 's' || deseja_se_tornar == 'S') {
+                fluxo_tornar_motorista(); // NOVO: Chama o fluxo para se tornar motorista
+            }
+            return; // Sempre retorna apos tentar se tornar motorista para reexibir o menu principal
+        }
+
+        // Se ja for motorista, exibe o menu normal de motorista
         int comando;
         do {
             exibir_menu_motorista();
@@ -200,17 +241,96 @@ namespace ufmg_carona {
             } catch (const AppExcecao& e) {
                 std::cerr << "ERRO: " << e.what() << std::endl;
             }
-        } while (comando != 0);
+        } while (comando != 0); // Continua no loop ate o usuario escolher '0' para voltar
     }
+
+    // NOVO: Fluxo para lidar com o sub-menu de Perfil (Editar ou Gerenciar Veiculos)
+    void Sistema::fluxo_editar_perfil_ou_veiculos() {
+        int sub_comando_perfil;
+        do {
+            std::cout << "\n--- Menu Perfil ---" << std::endl;
+            std::cout << "(1) Editar Perfil | (2) Gerenciar Veiculos (Motorista) | (0) Voltar" << std::endl;
+            sub_comando_perfil = coletar_int_input("> ", 0, 2);
+
+            try {
+                if (sub_comando_perfil == 1) {
+                    fluxo_editar_perfil();
+                } else if (sub_comando_perfil == 2) {
+                    if (_usuario_logado->is_motorista()) {
+                        fluxo_gerenciar_veiculos();
+                    } else {
+                        std::cout << "Voce nao eh motorista para gerenciar veiculos." << std::endl;
+                    }
+                }
+            } catch (const AppExcecao& e) {
+                std::cerr << "ERRO: " << e.what() << std::endl;
+            }
+        } while (sub_comando_perfil != 0); // Continua no loop ate o usuario escolher '0' para voltar
+    }
+
+    // NOVO: Fluxo para tornar um usuario em motorista
+    void Sistema::fluxo_tornar_motorista() {
+        // Verifica se o usuario ja nao eh um motorista (ja foi checado antes, mas eh uma boa pratica)
+        if (_usuario_logado->is_motorista()) {
+            std::cout << "Voce ja e um motorista cadastrado." << std::endl;
+            return;
+        }
+
+        std::string cnh_numero_digitado;
+        std::cout << "\n--- Cadastro para Motorista ---" << std::endl;
+        std::cout << "Numero da CNH: "; std::getline(std::cin, cnh_numero_digitado);
+
+        // Encontra o indice do usuario atual na lista _usuarios
+        auto it = std::find(_usuarios.begin(), _usuarios.end(), _usuario_logado);
+        if (it == _usuarios.end()) {
+            std::cerr << "ERRO INTERNO: Usuario logado nao encontrado na lista de usuarios." << std::endl;
+            return;
+        }
+
+        // Obtem os dados do usuario atual para criar o novo motorista
+        std::string nome = _usuario_logado->get_nome();
+        std::string cpf = _usuario_logado->get_cpf();
+        std::string telefone = _usuario_logado->get_telefone();
+        std::string data_nascimento = _usuario_logado->get_data_nascimento();
+        std::string email = _usuario_logado->get_email();
+        std::string senha = _usuario_logado->get_senha();
+        Genero genero = _usuario_logado->get_genero();
+        std::string vinculo_tipo = _usuario_logado->get_vinculo_raw();
+        std::string detalhe_vinculo = _usuario_logado->get_detalhe_vinculo();
+
+        // Cria um novo objeto Motorista
+        Motorista* novo_motorista = new Motorista(nome, cpf, telefone, data_nascimento, email, senha, genero,
+                                                  vinculo_tipo, detalhe_vinculo, cnh_numero_digitado);
+        
+        // Libera a memoria do Usuario antigo
+        delete _usuario_logado; 
+
+        // Substitui o ponteiro antigo pelo novo Motorista na lista _usuarios
+        *it = novo_motorista;
+        
+        // Atualiza _usuario_logado para apontar para o novo Motorista
+        _usuario_logado = novo_motorista;
+
+        salvar_dados_usuarios(); // Salva os dados atualizados do usuario (agora motorista)
+
+        std::cout << "Parabens! Voce agora e um motorista cadastrado." << std::endl;
+
+        // Oferece para cadastrar um veiculo imediatamente
+        char cadastrar_veiculo_char;
+        std::cout << "Deseja cadastrar um veiculo agora? (s/n): ";
+        std::cin >> cadastrar_veiculo_char;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        if (cadastrar_veiculo_char == 's' || cadastrar_veiculo_char == 'S') {
+            fluxo_cadastrar_veiculo();
+        }
+    }
+
 
     void Sistema::fluxo_cadastro() {
         std::string cpf_digitado, telefone_digitado, email_digitado, senha_digitada;
         int gen_int;
-        char deseja_motorista_char;
-        bool deseja_ser_motorista = false;
-
+        
         std::string nome_ufmg, data_nascimento_ufmg, vinculo_ufmg, detalhe_ufmg;
-        std::string cnh_numero_digitado;
         
         std::cout << "--- Cadastro ---" << std::endl;
         std::cout << "CPF: "; std::getline(std::cin, cpf_digitado);
@@ -244,40 +364,12 @@ namespace ufmg_carona {
         gen_int = coletar_int_input("", 0, 3);
         Genero gen_digitado = static_cast<Genero>(gen_int);
 
-        std::cout << "Deseja oferecer caronas (ser motorista)? (s/n): ";
-        std::cin >> deseja_motorista_char;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        deseja_ser_motorista = (deseja_motorista_char == 's' || deseja_motorista_char == 'S');
-
-        Usuario* novo_usuario = nullptr;
-
-        if (deseja_ser_motorista) {
-            std::cout << "--- Cadastro de Motorista ---" << std::endl;
-            std::cout << "Numero da CNH: "; std::getline(std::cin, cnh_numero_digitado);
-            novo_usuario = new Motorista(nome_ufmg, cpf_digitado, telefone_digitado, data_nascimento_ufmg,
-                                         email_digitado, senha_digitada, gen_digitado, vinculo_ufmg,
-                                         detalhe_ufmg, cnh_numero_digitado);
-        } else {
-            novo_usuario = new Usuario(nome_ufmg, cpf_digitado, telefone_digitado, data_nascimento_ufmg,
+        Usuario* novo_usuario = new Usuario(nome_ufmg, cpf_digitado, telefone_digitado, data_nascimento_ufmg,
                                        email_digitado, senha_digitada, gen_digitado, vinculo_ufmg, detalhe_ufmg);
-        }
 
         _usuarios.push_back(novo_usuario);
         salvar_dados_usuarios();
         std::cout << "Cadastro realizado com sucesso!" << std::endl;
-        
-        if (deseja_ser_motorista) {
-            // NOVO: Pergunta para cadastrar o primeiro veiculo, e depois se deseja um novo
-            char cadastrar_veiculo_char;
-            std::cout << "Deseja cadastrar um veiculo agora? (s/n): ";
-            std::cin >> cadastrar_veiculo_char;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            if (cadastrar_veiculo_char == 's' || cadastrar_veiculo_char == 'S') {
-                _usuario_logado = novo_usuario; // Temporariamente loga para usar fluxo_cadastrar_veiculo
-                fluxo_cadastrar_veiculo();
-                _usuario_logado = nullptr; // Desloga novamente
-            }
-        }
     }
 
     void Sistema::fluxo_login() {
@@ -297,48 +389,54 @@ namespace ufmg_carona {
         std::cout << "Logout efetuado." << std::endl;
     }
 
-    // NOVO: Fluxo para edicao de perfil
     void Sistema::fluxo_editar_perfil() {
-        std::cout << "\n--- Editar Perfil ---" << std::endl;
-        std::cout << "Escolha o campo para editar:" << std::endl;
-        std::cout << "(1) Email | (2) Telefone | (3) Senha | (4) Genero | (0) Voltar" << std::endl;
-        
-        int escolha = coletar_int_input("> ", 0, 4);
-        std::string novo_valor;
+        int escolha;
+        do { // Adiciona um loop para permitir edicao multipla ou voltar
+            std::cout << "\n--- Editar Perfil ---" << std::endl;
+            _usuario_logado->imprimir_perfil(); // Mostra o perfil atual
+            std::cout << "Escolha o campo para editar:" << std::endl;
+            std::cout << "(1) Email | (2) Telefone | (3) Senha | (4) Genero | (0) Voltar" << std::endl;
+            
+            escolha = coletar_int_input("> ", 0, 4);
+            std::string novo_valor;
 
-        switch (escolha) {
-            case 1: // Email
-                std::cout << "Novo Email: ";
-                std::getline(std::cin, novo_valor);
-                _usuario_logado->set_email(novo_valor);
-                std::cout << "Email atualizado!" << std::endl;
-                break;
-            case 2: // Telefone
-                std::cout << "Novo Telefone (apenas numeros): ";
-                std::getline(std::cin, novo_valor);
-                _usuario_logado->set_telefone(novo_valor);
-                std::cout << "Telefone atualizado!" << std::endl;
-                break;
-            case 3: // Senha
-                std::cout << "Nova Senha: ";
-                std::getline(std::cin, novo_valor);
-                _usuario_logado->set_senha(novo_valor);
-                std::cout << "Senha atualizada!" << std::endl;
-                break;
-            case 4: { // Genero - Adicionado escopo para 'gen_int'
-                int gen_int = coletar_int_input("", 0, 3);
-                _usuario_logado->set_genero(static_cast<Genero>(gen_int));
-                std::cout << "Genero atualizado!" << std::endl;
-                break;
-            } // Fim do escopo
-            case 0:
-                std::cout << "Voltando..." << std::endl;
-                break;
-            default:
-                std::cout << "Opcao invalida." << std::endl;
-                break;
-        }
-        salvar_dados_usuarios(); // Salva as alteracoes no arquivo
+            switch (escolha) {
+                case 1: // Email
+                    std::cout << "Novo Email: ";
+                    std::getline(std::cin, novo_valor);
+                    _usuario_logado->set_email(novo_valor);
+                    std::cout << "Email atualizado!" << std::endl;
+                    break;
+                case 2: // Telefone
+                    std::cout << "Novo Telefone (apenas numeros): ";
+                    std::getline(std::cin, novo_valor);
+                    _usuario_logado->set_telefone(novo_valor);
+                    std::cout << "Telefone atualizado!" << std::endl;
+                    break;
+                case 3: // Senha
+                    std::cout << "Nova Senha: ";
+                    std::getline(std::cin, novo_valor);
+                    _usuario_logado->set_senha(novo_valor);
+                    std::cout << "Senha atualizada!" << std::endl;
+                    break;
+                case 4: { // Genero - Adicionado escopo para 'gen_int'
+                    std::cout << "Novo Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar): ";
+                    int gen_int = coletar_int_input("", 0, 3);
+                    _usuario_logado->set_genero(static_cast<Genero>(gen_int));
+                    std::cout << "Genero atualizado!" << std::endl;
+                    break;
+                }
+                case 0:
+                    std::cout << "Voltando ao menu anterior..." << std::endl;
+                    break;
+                default:
+                    std::cout << "Opcao invalida." << std::endl;
+                    break;
+            }
+            if (escolha != 0) { // Salva apenas se algo foi editado
+                salvar_dados_usuarios(); // Salva as alteracoes no arquivo
+            }
+        } while (escolha != 0); // Continua no loop ate o usuario escolher '0' para voltar
     }
 
     // NOVO: Fluxo para gerenciar veiculos do motorista
@@ -348,7 +446,7 @@ namespace ufmg_carona {
             return;
         }
         Motorista* motorista_logado = dynamic_cast<Motorista*>(_usuario_logado);
-        if (!motorista_logado) return; // Should not happen if is_motorista() is true
+        if (!motorista_logado) return;
 
         int comando;
         do {
@@ -379,7 +477,7 @@ namespace ufmg_carona {
             } catch (const AppExcecao& e) {
                 std::cerr << "ERRO: " << e.what() << std::endl;
             }
-        } while (comando != 0);
+        } while (comando != 0); // Continua no loop ate o usuario escolher '0' para voltar
     }
 
     // NOVO: Fluxo para editar um veiculo especifico
@@ -390,8 +488,10 @@ namespace ufmg_carona {
         }
 
         std::string placa_escolhida;
-        std::cout << "Digite a placa do veiculo que deseja editar: ";
+        std::cout << "Digite a placa do veiculo que deseja editar (0 para voltar): ";
         std::getline(std::cin, placa_escolhida);
+
+        if (placa_escolhida == "0") return;
 
         Veiculo* veiculo_para_editar = motorista->buscar_veiculo_por_placa(placa_escolhida);
         if (!veiculo_para_editar) {
@@ -399,41 +499,46 @@ namespace ufmg_carona {
             return;
         }
 
-        std::cout << "\n--- Editando Veiculo: " << placa_escolhida << " ---" << std::endl;
-        veiculo_para_editar->exibir_info();
-        std::cout << "Escolha o campo para editar:" << std::endl;
-        std::cout << "(1) Marca | (2) Modelo | (3) Cor | (4) Lugares | (0) Voltar" << std::endl;
-        int escolha = coletar_int_input("> ", 0, 4);
-        std::string novo_str_valor;
-        int novo_int_valor;
+        int escolha;
+        do { // Loop para permitir editar varios campos ou voltar
+            std::cout << "\n--- Editando Veiculo: " << placa_escolhida << " ---" << std::endl;
+            veiculo_para_editar->exibir_info();
+            std::cout << "Escolha o campo para editar:" << std::endl;
+            std::cout << "(1) Marca | (2) Modelo | (3) Cor | (4) Lugares | (0) Voltar" << std::endl;
+            escolha = coletar_int_input("> ", 0, 4);
+            std::string novo_str_valor;
+            int novo_int_valor;
 
-        switch (escolha) {
-            case 1:
-                std::cout << "Nova Marca: "; std::getline(std::cin, novo_str_valor);
-                veiculo_para_editar->set_marca(novo_str_valor);
-                break;
-            case 2:
-                std::cout << "Novo Modelo: "; std::getline(std::cin, novo_str_valor);
-                veiculo_para_editar->set_modelo(novo_str_valor);
-                break;
-            case 3:
-                std::cout << "Nova Cor: "; std::getline(std::cin, novo_str_valor);
-                veiculo_para_editar->set_cor(novo_str_valor);
-                break;
-            case 4:
-                std::cout << "Total de Lugares (com motorista): ";
-                novo_int_valor = coletar_int_input("", 2, 99); // Limites razoaveis para lugares
-                veiculo_para_editar->set_lugares(novo_int_valor);
-                break;
-            case 0:
-                std::cout << "Voltando..." << std::endl;
-                break;
-            default:
-                std::cout << "Opcao invalida." << std::endl;
-                break;
-        }
-        salvar_dados_veiculos(); // Salva as alteracoes
-        std::cout << "Veiculo atualizado com sucesso!" << std::endl;
+            switch (escolha) {
+                case 1:
+                    std::cout << "Nova Marca: "; std::getline(std::cin, novo_str_valor);
+                    veiculo_para_editar->set_marca(novo_str_valor);
+                    break;
+                case 2:
+                    std::cout << "Novo Modelo: "; std::getline(std::cin, novo_str_valor);
+                    veiculo_para_editar->set_modelo(novo_str_valor);
+                    break;
+                case 3:
+                    std::cout << "Nova Cor: "; std::getline(std::cin, novo_str_valor);
+                    veiculo_para_editar->set_cor(novo_str_valor);
+                    break;
+                case 4:
+                    std::cout << "Total de Lugares (com motorista): ";
+                    novo_int_valor = coletar_int_input("", 2, 99); // Limites razoaveis para lugares
+                    veiculo_para_editar->set_lugares(novo_int_valor);
+                    break;
+                case 0:
+                    std::cout << "Voltando..." << std::endl;
+                    break;
+                default:
+                    std::cout << "Opcao invalida." << std::endl;
+                    break;
+            }
+            if (escolha != 0) { // Salva apenas se algo foi editado
+                salvar_dados_veiculos(); // Salva as alteracoes
+                std::cout << "Veiculo atualizado com sucesso!" << std::endl;
+            }
+        } while (escolha != 0); // Continua no loop ate o usuario escolher '0' para voltar
     }
 
     // NOVO: Fluxo para excluir um veiculo
@@ -444,8 +549,10 @@ namespace ufmg_carona {
         }
 
         std::string placa_escolhida;
-        std::cout << "Digite a placa do veiculo que deseja excluir: ";
+        std::cout << "Digite a placa do veiculo que deseja excluir (0 para voltar): ";
         std::getline(std::cin, placa_escolhida);
+
+        if (placa_escolhida == "0") return;
 
         char confirmar;
         std::cout << "Tem certeza que deseja excluir o veiculo " << placa_escolhida << "? (s/n): ";
@@ -486,8 +593,14 @@ namespace ufmg_carona {
             std::cout << "Placa: "; std::getline(std::cin, placa);
             if (motorista_logado->buscar_veiculo_por_placa(placa) != nullptr) {
                 std::cout << "Voce ja possui um veiculo com esta placa." << std::endl;
-                cadastrar_outro = 'n'; // Sai do loop para evitar loop infinito se houver um veiculo com a mesma placa
-                continue;
+                std::cout << "Deseja tentar com outra placa? (s/n): ";
+                char tentar_outra;
+                std::cin >> tentar_outra;
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                if (!(tentar_outra == 's' || tentar_outra == 'S')) {
+                    cadastrar_outro = 'n'; // Sai do loop
+                }
+                continue; // Volta para o inicio do loop
             }
 
             std::cout << "Marca: "; std::getline(std::cin, marca);
@@ -525,9 +638,11 @@ namespace ufmg_carona {
             }
         }
         std::string placa_escolhida;
-        std::cout << "Digite a placa do veiculo que deseja usar para esta carona: ";
+        std::cout << "Digite a placa do veiculo que deseja usar para esta carona (0 para voltar): ";
         std::getline(std::cin, placa_escolhida);
         
+        if (placa_escolhida == "0") return; // Volta se o usuario digitar 0
+
         Veiculo* veiculo_selecionado = motorista_logado->buscar_veiculo_por_placa(placa_escolhida);
         if (!veiculo_selecionado) {
             std::cout << "Veiculo com a placa informada nao encontrado em seus cadastros." << std::endl;
@@ -548,7 +663,7 @@ namespace ufmg_carona {
         std::cout << "Carona (ID: " << nova_carona.get_id() << ") criada com sucesso usando o veiculo " << veiculo_selecionado->get_placa() << "!" << std::endl;
     }
 
-    // ALTERADO: fluxo_solicitar_carona agora inclui busca e filtros
+    // ALTERADO: fluxo_solicitar_carona agora inclui busca e filtros e NAO MOSTRA SOLICITACOES JA FEITAS
     void Sistema::fluxo_solicitar_carona() {
         std::cout << "\n--- Solicitar Carona ---" << std::endl;
         if (_caronas.empty()) {
@@ -575,6 +690,20 @@ namespace ufmg_carona {
 
         std::vector<Carona*> caronas_filtradas;
         for (auto& carona : _caronas) {
+            // Verifica se o usuario logado ja solicitou esta carona
+            bool ja_solicitou = false;
+            for (const auto& solicitacao : _solicitacoes) {
+                if (solicitacao->get_passageiro() == _usuario_logado &&
+                    solicitacao->get_carona()->get_id() == carona.get_id()) {
+                    ja_solicitou = true;
+                    break;
+                }
+            }
+            if (ja_solicitou) {
+                continue; // Pula para a proxima carona se o usuario ja solicitou esta
+            }
+
+            // Continua com os filtros existentes
             bool atende_filtro_origem = filtro_origem.empty() || carona.get_origem().find(filtro_origem) != std::string::npos;
             bool atende_filtro_destino = filtro_destino.empty() || carona.get_destino().find(filtro_destino) != std::string::npos;
             
@@ -601,7 +730,7 @@ namespace ufmg_carona {
         }
 
         if (caronas_filtradas.empty()) {
-            std::cout << "Nenhuma carona encontrada com os filtros especificados." << std::endl;
+            std::cout << "Nenhuma carona encontrada com os filtros especificados ou voce ja solicitou todas as caronas disponiveis." << std::endl;
             return;
         }
 
@@ -611,10 +740,10 @@ namespace ufmg_carona {
         }
 
         int id_carona;
-        std::cout << "\nDigite o ID da carona que deseja solicitar (0 para voltar): ";
+        std::cout << "\nDigite o ID da carona que deseja solicitar (0 para voltar ao menu Passageiro): ";
         id_carona = coletar_int_input("", 0, std::numeric_limits<int>::max());
 
-        if (id_carona == 0) return;
+        if (id_carona == 0) return; // Volta para o menu de passageiro
 
         Carona* carona_escolhida = buscar_carona_por_id(id_carona);
         if (!carona_escolhida) {
@@ -737,7 +866,7 @@ namespace ufmg_carona {
     Veiculo* Sistema::buscar_veiculo_por_placa_motorista(Motorista* motorista, const std::string& placa) {
         if (!motorista) return nullptr;
         for (Veiculo* v : motorista->get_veiculos()) {
-            if (v->get_placa() == placa) {
+            if (v && v->get_placa() == placa) { // Adicionado 'v &&' para seguranca
                 return v;
             }
         }
@@ -801,7 +930,7 @@ namespace ufmg_carona {
                 std::string is_motorista_str = campos[9];
                 
                 std::string cnh_numero_lida;
-                if (campos.size() == 11) { 
+                if (campos.size() >= 11) { // Mudado para >= para evitar segfault se houver mais campos por engano
                     cnh_numero_lida = campos[10];
                 }
 
@@ -831,13 +960,14 @@ namespace ufmg_carona {
                 Usuario* novo_usuario_carregado = nullptr;
 
                 if (eh_motorista_do_arquivo) {
-                    if (cnh_numero_lida.empty()) {
-                        std::cerr << "AVISO: Motorista com CPF " << cpf << " sem CNH no usuarios.txt. Carregado como Usuario comum." << std::endl;
-                        novo_usuario_carregado = new Usuario(nome, cpf, telefone, data_nascimento, email, senha, gen,
-                                                             vinculo_tipo, detalhe_vinculo);
-                    } else {
+                    // Cuidado: Motorista só é válido se tiver CNH lida
+                    if (!cnh_numero_lida.empty() && cnh_numero_lida != "0") { // Verifica se a CNH não está vazia ou "0"
                         novo_usuario_carregado = new Motorista(nome, cpf, telefone, data_nascimento, email, senha, gen,
                                                              vinculo_tipo, detalhe_vinculo, cnh_numero_lida);
+                    } else {
+                        std::cerr << "AVISO: Motorista com CPF " << cpf << " sem CNH valida no usuarios.txt. Carregado como Usuario comum." << std::endl;
+                        novo_usuario_carregado = new Usuario(nome, cpf, telefone, data_nascimento, email, senha, gen,
+                                                             vinculo_tipo, detalhe_vinculo);
                     }
                 } else {
                     novo_usuario_carregado = new Usuario(nome, cpf, telefone, data_nascimento, email, senha, gen,
@@ -884,7 +1014,12 @@ namespace ufmg_carona {
                 if (motorista_assoc && motorista_assoc->is_motorista()) {
                     Motorista* m_ptr = dynamic_cast<Motorista*>(motorista_assoc);
                     if (m_ptr) {
-                        m_ptr->adicionar_veiculo(new Veiculo(placa_veic, marca_veic, modelo_veic, cor_veic, lugares_veic));
+                        // Antes de adicionar, verificar se o veículo já existe para o motorista
+                        if (m_ptr->buscar_veiculo_por_placa(placa_veic) == nullptr) {
+                            m_ptr->adicionar_veiculo(new Veiculo(placa_veic, marca_veic, modelo_veic, cor_veic, lugares_veic));
+                        } else {
+                            std::cerr << "AVISO: Veiculo com placa " << placa_veic << " ja existe para o motorista " << cpf_motorista_veic << ". Nao recarregado." << std::endl;
+                        }
                     }
                 } else {
                     std::cerr << "AVISO: Veiculo com placa " << placa_veic << " tem CPF de motorista (" << cpf_motorista_veic << ") nao encontrado ou nao e motorista valido. Veiculo nao carregado." << std::endl;

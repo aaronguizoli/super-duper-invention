@@ -49,15 +49,21 @@ namespace ufmg_carona {
         std::cout << "\n--- Carona ID: " << _id << " ---" << std::endl;
         std::cout << "De: " << _origem << " -> Para: " << _destino << std::endl;
         std::cout << "Data/Hora: " << _data_hora_partida << std::endl;
+        
+        // ADICIONADO: Verificacao de nullptr para _motorista
         if (_motorista) {
             std::cout << "Motorista: " << _motorista->get_nome() << " | Avaliacao: "
                       << std::fixed << std::setprecision(1) << _motorista->get_media_avaliacoes() << " estrelas" << std::endl;
             
-            // Exibir placa do veiculo USADO nesta carona
+            // ADICIONADO: Verificacao de nullptr para _veiculo_usado
             if (_veiculo_usado) {
                 std::cout << "  Veiculo: " << _veiculo_usado->get_marca() << " " << _veiculo_usado->get_modelo()
                           << ", Cor: " << _veiculo_usado->get_cor() << ", Placa: " << _veiculo_usado->get_placa() << std::endl;
+            } else {
+                std::cout << "  Veiculo: Nao disponivel" << std::endl;
             }
+        } else {
+            std::cout << "Motorista: Nao disponivel" << std::endl;
         }
         std::cout << "Vagas restantes: " << _vagas_disponiveis << std::endl;
         if (_apenas_mulheres) {
@@ -66,9 +72,10 @@ namespace ufmg_carona {
     }
 
     void Carona::exibir_info_detalhada() const {
-        exibir_info();
+        exibir_info(); // Já contém as verificações
         std::cout << "Passageiros confirmados: " << _passageiros.size() << std::endl;
         std::cout << "Solicitacoes pendentes: " << _solicitacoes_pendentes.size() << std::endl;
+        // Poderiamos iterar e exibir os passageiros se desejado
     }
 
     void Carona::adicionar_solicitacao(Solicitacao* solicitacao) {
