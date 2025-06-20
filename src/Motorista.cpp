@@ -42,6 +42,21 @@ namespace ufmg_carona {
         return nullptr;
     }
 
+    // NOVO: Metodo para remover um veiculo
+    bool Motorista::remover_veiculo(const std::string& placa) {
+        auto it = std::remove_if(_veiculos.begin(), _veiculos.end(),
+                                 [&placa](Veiculo* v) { return v->get_placa() == placa; });
+
+        if (it != _veiculos.end()) {
+            for (auto iter = it; iter != _veiculos.end(); ++iter) {
+                delete *iter; // Libera a memoria do objeto Veiculo
+            }
+            _veiculos.erase(it, _veiculos.end());
+            return true;
+        }
+        return false;
+    }
+
     void Motorista::imprimir_perfil() const {
         Usuario::imprimir_perfil();
         std::cout << "--- Informacoes de Motorista ---" << std::endl;

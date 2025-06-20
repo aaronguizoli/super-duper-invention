@@ -17,6 +17,12 @@ namespace ufmg_carona {
         const std::string& get_marca() const;
         const std::string& get_modelo() const;
         const std::string& get_cor() const;
+
+        // NOVOS SETTERS PARA EDICAO
+        void set_marca(const std::string& marca);
+        void set_modelo(const std::string& modelo);
+        void set_cor(const std::string& cor);
+        void set_lugares(int lugares);
     };
 }
 #endif

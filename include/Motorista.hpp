@@ -35,6 +35,9 @@ namespace ufmg_carona {
 
         // Metodo para buscar um veiculo por placa (necessario para oferecer carona)
         Veiculo* buscar_veiculo_por_placa(const std::string& placa) const;
+
+        // NOVO: Metodo para remover um veiculo
+        bool remover_veiculo(const std::string& placa);
     };
 }
 

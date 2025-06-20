@@ -80,4 +80,10 @@ namespace ufmg_carona {
 
     const std::string& Usuario::get_telefone() const { return _telefone; }
     const std::string& Usuario::get_data_nascimento() const { return _data_nascimento; }
+
+    // NOVOS: Métodos SET para edição de perfil
+    void Usuario::set_email(const std::string& email) { _email = email; }
+    void Usuario::set_telefone(const std::string& telefone) { _telefone = telefone; }
+    void Usuario::set_senha(const std::string& senha) { _senha = senha; }
+    void Usuario::set_genero(Genero genero) { _genero = genero; }
 }
