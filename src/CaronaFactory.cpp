@@ -1,11 +1,10 @@
 #include "CaronaFactory.hpp"
-#include "Usuario.hpp" // Para Usuario*
-// #include <memory> // Removido
+#include "Usuario.hpp"
+#include "Veiculo.hpp"
 
 namespace ufmg_carona {
-    // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
-    Carona CaronaFactory::criar_carona(std::string o, std::string d, std::string dt, Usuario* m, bool am, TipoCarona t) {
-        // Passa o ponteiro bruto diretamente para o construtor da Carona
-        return Carona(o, d, dt, m, am, t);
+    // Construtor ATUALIZADO: Passa o veiculo_usado para o construtor da Carona
+    Carona CaronaFactory::criar_carona(std::string o, std::string d, std::string dt, Usuario* m, Veiculo* vu, bool am, TipoCarona t) {
+        return Carona(o, d, dt, m, vu, am, t);
     }
 }

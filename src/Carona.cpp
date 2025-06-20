@@ -1,40 +1,44 @@
 #include "Carona.hpp"
-#include "Usuario.hpp" // Para Usuario*
+#include "Usuario.hpp"
 #include "Veiculo.hpp"
-#include "Solicitacao.hpp" // Para Solicitacao*
+#include "Solicitacao.hpp"
+#include "Motorista.hpp"
 #include <iostream>
 #include <iomanip>
-#include <algorithm> // Para std::find
-// #include <memory> // Removido
+#include <algorithm>
 
 namespace ufmg_carona {
     int Carona::_proximo_id = 1;
 
-    // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario* no construtor
-    Carona::Carona(std::string origem, std::string destino, std::string data, Usuario* motorista, bool apenas_mulheres, TipoCarona tipo)
+    // Construtor da Carona ATUALIZADO para receber o veiculo_usado
+    Carona::Carona(std::string origem, std::string destino, std::string data, Usuario* motorista, Veiculo* veiculo_usado, bool apenas_mulheres, TipoCarona tipo)
         : _id(gerar_proximo_id()),
           _origem(origem),
           _destino(destino),
           _data_hora_partida(data),
-          _motorista(motorista), // Atribui o ponteiro bruto
-          _passageiros(), // Inicializando o vetor vazio
-          _solicitacoes_pendentes(), // Inicializando o vetor vazio
+          _motorista(motorista),
+          _veiculo_usado(veiculo_usado), // Inicializa o novo atributo
+          _passageiros(),
+          _solicitacoes_pendentes(),
           _vagas_disponiveis(0), // Valor inicial seguro
           _apenas_mulheres(apenas_mulheres),
           _status(StatusCarona::AGUARDANDO),
           _tipo(tipo) {
 
-        if (motorista && motorista->is_motorista()) { // Acesso direto ao ponteiro bruto
-            _vagas_disponiveis = motorista->get_veiculo().get_lugares() - 1;
+        // As vagas disponiveis sao diretamente do veiculo_usado
+        if (veiculo_usado) {
+            _vagas_disponiveis = veiculo_usado->get_lugares() - 1;
+        } else {
+            std::cerr << "ERRO: Carona criada sem um veiculo valido. Vagas definidas como 0." << std::endl;
+            _vagas_disponiveis = 0;
         }
     }
 
     int Carona::gerar_proximo_id() { return _proximo_id++; }
 
-    // Getters
     int Carona::get_id() const { return _id; }
-    // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario* no getter
-    Usuario* Carona::get_motorista() const { return _motorista; } // Retorna ponteiro bruto
+    Usuario* Carona::get_motorista() const { return _motorista; }
+    Veiculo* Carona::get_veiculo_usado() const { return _veiculo_usado; }
     const std::string& Carona::get_origem() const { return _origem; }
     const std::string& Carona::get_destino() const { return _destino; }
     const std::string& Carona::get_data_hora() const { return _data_hora_partida; }
@@ -46,8 +50,14 @@ namespace ufmg_carona {
         std::cout << "De: " << _origem << " -> Para: " << _destino << std::endl;
         std::cout << "Data/Hora: " << _data_hora_partida << std::endl;
         if (_motorista) {
-            std::cout << "Motorista: " << _motorista->get_nome() << " | Avaliacao: " // Acesso direto ao ponteiro
-                      << std::fixed << std::setprecision(1) << _motorista->get_media_avaliacoes() << " estrelas" << std::endl; // Acesso direto
+            std::cout << "Motorista: " << _motorista->get_nome() << " | Avaliacao: "
+                      << std::fixed << std::setprecision(1) << _motorista->get_media_avaliacoes() << " estrelas" << std::endl;
+            
+            // Exibir placa do veiculo USADO nesta carona
+            if (_veiculo_usado) {
+                std::cout << "  Veiculo: " << _veiculo_usado->get_marca() << " " << _veiculo_usado->get_modelo()
+                          << ", Cor: " << _veiculo_usado->get_cor() << ", Placa: " << _veiculo_usado->get_placa() << std::endl;
+            }
         }
         std::cout << "Vagas restantes: " << _vagas_disponiveis << std::endl;
         if (_apenas_mulheres) {
@@ -61,13 +71,10 @@ namespace ufmg_carona {
         std::cout << "Solicitacoes pendentes: " << _solicitacoes_pendentes.size() << std::endl;
     }
 
-    // Gerenciamento de solicitações
-    // ALTERAÇÃO: De std::shared_ptr<Solicitacao> para Solicitacao*
     void Carona::adicionar_solicitacao(Solicitacao* solicitacao) {
         _solicitacoes_pendentes.push_back(solicitacao);
     }
 
-    // ALTERAÇÃO: De const std::vector<std::shared_ptr<Solicitacao>>& para const std::vector<Solicitacao*>&
     const std::vector<Solicitacao*>& Carona::get_solicitacoes_pendentes() const {
         return _solicitacoes_pendentes;
     }
@@ -76,8 +83,6 @@ namespace ufmg_carona {
         return !_solicitacoes_pendentes.empty();
     }
 
-    // Gerenciamento de passageiros
-    // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
     void Carona::adicionar_passageiro(Usuario* passageiro) {
         if (_vagas_disponiveis > 0) {
             _passageiros.push_back(passageiro);
@@ -85,9 +90,7 @@ namespace ufmg_carona {
         }
     }
 
-    // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
     void Carona::remover_passageiro(Usuario* passageiro) {
-        // Para ponteiros brutos, a comparação é direta pelo endereço
         auto it = std::find(_passageiros.begin(), _passageiros.end(), passageiro);
         if (it != _passageiros.end()) {
             _passageiros.erase(it);

@@ -4,10 +4,12 @@
 #include <string>
 #include <tuple>
 #include <fstream>
-#include "Usuario.hpp" // Apenas Usuario sera usado agora
+#include "Usuario.hpp"
+#include "Motorista.hpp"
 #include "Carona.hpp"
 #include "Solicitacao.hpp"
 #include "Genero.hpp"
+#include "Veiculo.hpp"
 
 namespace ufmg_carona {
     class Sistema {
@@ -19,13 +21,13 @@ namespace ufmg_carona {
 
         void carregar_dados_iniciais();
         void salvar_dados_usuarios();
+        void salvar_dados_veiculos();
 
         Usuario* buscar_usuario_por_cpf(const std::string& cpf);
         Carona* buscar_carona_por_id(int id);
 
         // Funcao para buscar dados completos de um usuario no arquivo dados_ufmg.txt
-        // Retorno: tuple<encontrado, nome, cpf, data_nascimento, vinculo, detalhe>
-        std::tuple<bool, std::string, std::string, std::string, std::string, std::string> buscar_dados_ufmg_por_cpf(const std::string& cpf_buscado);
+        std::tuple<bool, std::string, std::string, std::string, std::string> buscar_dados_ufmg_por_cpf(const std::string& cpf_buscado);
 
 
         void exibir_menu();

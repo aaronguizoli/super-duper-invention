@@ -2,11 +2,13 @@
 #define CARONA_HPP
 #include <string>
 #include <vector>
-// #include <memory> // Removido
 
 namespace ufmg_carona {
-    class Usuario; // Declaração antecipada
-    class Solicitacao; // Declaração antecipada
+    class Usuario;
+    class Solicitacao;
+    class Motorista;
+    class Veiculo; // Incluir Veiculo para poder armazenar um ponteiro para ele
+
     enum class TipoCarona { AGENDADA, IMEDIATA };
     enum class StatusCarona { AGUARDANDO, LOTADA, EM_VIAGEM, FINALIZADA, CANCELADA };
 
@@ -15,49 +17,41 @@ namespace ufmg_carona {
         int _id;
         static int _proximo_id;
         std::string _origem, _destino, _data_hora_partida;
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
-        Usuario* _motorista; // Carona não é proprietária do motorista
-        // ALTERAÇÃO: De std::vector<std::shared_ptr<Usuario>> para std::vector<Usuario*>
-        std::vector<Usuario*> _passageiros; // Carona não é proprietária dos passageiros
-        // ALTERAÇÃO: De std::vector<std::shared_ptr<Solicitacao>> para std::vector<Solicitacao*>
-        std::vector<Solicitacao*> _solicitacoes_pendentes; // Carona não é proprietária das solicitações
+        Usuario* _motorista; // Carona nao eh proprietaria do motorista
+        Veiculo* _veiculo_usado; // Ponteiro para o veiculo usado nesta carona
+        std::vector<Usuario*> _passageiros;
+        std::vector<Solicitacao*> _solicitacoes_pendentes;
         int _vagas_disponiveis;
         bool _apenas_mulheres;
         StatusCarona _status;
         TipoCarona _tipo;
 
     public:
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
-        Carona(std::string origem, std::string destino, std::string data, Usuario* motorista, bool apenas_mulheres, TipoCarona tipo);
-        // Não é necessário destrutor customizado, pois Carona não é proprietária dos ponteiros brutos que armazena.
-        // Eles são gerenciados pela classe Sistema.
+        // Construtor ATUALIZADO: Recebe um ponteiro para o Veiculo que sera usado
+        Carona(std::string origem, std::string destino, std::string data, Usuario* motorista, Veiculo* veiculo_usado, bool apenas_mulheres, TipoCarona tipo);
         static int gerar_proximo_id();
 
         // Getters
         int get_id() const;
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
         Usuario* get_motorista() const;
+        Veiculo* get_veiculo_usado() const; // Getter para o veiculo usado
         const std::string& get_origem() const;
         const std::string& get_destino() const;
         const std::string& get_data_hora() const;
         int get_vagas_disponiveis() const;
         bool get_apenas_mulheres() const;
 
-        // Métodos de exibição
+        // Metodos de exibicao
         void exibir_info() const;
         void exibir_info_detalhada() const;
 
-        // Gerenciamento de solicitações
-        // ALTERAÇÃO: De std::shared_ptr<Solicitacao> para Solicitacao*
+        // Gerenciamento de solicitacoes
         void adicionar_solicitacao(Solicitacao* solicitacao);
-        // ALTERAÇÃO: De const std::vector<std::shared_ptr<Solicitacao>>& para const std::vector<Solicitacao*>&
         const std::vector<Solicitacao*>& get_solicitacoes_pendentes() const;
         bool tem_solicitacoes_pendentes() const;
 
         // Gerenciamento de passageiros
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
         void adicionar_passageiro(Usuario* passageiro);
-        // ALTERAÇÃO: De std::shared_ptr<Usuario> para Usuario*
         void remover_passageiro(Usuario* passageiro);
     };
 }
