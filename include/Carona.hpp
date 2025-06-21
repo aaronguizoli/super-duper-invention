@@ -2,6 +2,7 @@
 #define CARONA_HPP
 #include <string>
 #include <vector>
+#include "Zona.hpp" // Manter apenas esta inclusao, UFMGPosicao ja vem daqui
 
 namespace ufmg_carona {
     class Usuario;
@@ -12,11 +13,20 @@ namespace ufmg_carona {
     enum class TipoCarona { AGENDADA, IMEDIATA };
     enum class StatusCarona { AGUARDANDO, LOTADA, EM_VIAGEM, FINALIZADA, CANCELADA };
 
+    // REMOVER ESTE BLOCO:
+    // enum class UFMGPosicao { ORIGEM, DESTINO }; // <<<<<<<<<< REMOVER ESTA LINHA E QUALQUER DEFINICAO RELACIONADA
+
     class Carona {
     private:
         int _id;
         static int _proximo_id;
-        std::string _origem, _destino, _data_hora_partida;
+        std::string _origem_nome;
+        std::string _destino_nome;
+        Zona _origem_zona;
+        Zona _destino_zona;
+        UFMGPosicao _ufmg_posicao; // Manter o uso do UFMGPosicao, pois ele sera incluido via Zona.hpp
+        
+        std::string _data_hora_partida;
         Usuario* _motorista;
         Veiculo* _veiculo_usado;
         std::vector<Usuario*> _passageiros;
@@ -27,7 +37,7 @@ namespace ufmg_carona {
         TipoCarona _tipo;
 
     public:
-        Carona(std::string origem, std::string destino, std::string data, Usuario* motorista, Veiculo* veiculo_usado, bool apenas_mulheres, TipoCarona tipo);
+        Carona(std::string origem_nome, std::string destino_nome, Zona origem_zona, Zona destino_zona, UFMGPosicao ufmg_posicao, std::string data, Usuario* motorista, Veiculo* veiculo_usado, bool apenas_mulheres, TipoCarona tipo);
         static int gerar_proximo_id();
 
         int get_id() const;
@@ -35,6 +45,10 @@ namespace ufmg_carona {
         Veiculo* get_veiculo_usado() const;
         const std::string& get_origem() const;
         const std::string& get_destino() const;
+        Zona get_origem_zona() const;
+        Zona get_destino_zona() const;
+        UFMGPosicao get_ufmg_posicao() const;
+
         const std::string& get_data_hora() const;
         int get_vagas_disponiveis() const;
         bool get_apenas_mulheres() const;

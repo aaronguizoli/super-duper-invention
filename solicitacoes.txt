@@ -1,0 +1,2 @@
+11122233344;2;ACEITA;Icex;Venda nova 2;ICB;Venda nova 2
+11122233344;3;PENDENTE;Icex;Venda nova 2;;

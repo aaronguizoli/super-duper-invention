@@ -5,6 +5,7 @@
 #include <tuple>
 #include <fstream>
 #include <ctime>
+#include <map> // Incluir para std::map
 #include "Usuario.hpp"
 #include "Motorista.hpp"
 #include "Carona.hpp"
@@ -12,6 +13,7 @@
 #include "Genero.hpp"
 #include "Veiculo.hpp"
 #include "Rotina.hpp"
+#include "Zona.hpp" // Incluir para usar Zona e UFMGPosicao
 
 namespace ufmg_carona {
     class Sistema {
@@ -21,11 +23,25 @@ namespace ufmg_carona {
         std::vector<Solicitacao*> _solicitacoes;
         Usuario* _usuario_logado;
 
+        // Mapeamentos para Zona e UFMGPosicao
+        std::map<int, Zona> _int_para_zona;
+        std::map<Zona, std::string> _zona_para_string;
+        std::map<int, UFMGPosicao> _int_para_ufmg_posicao;
+        std::map<UFMGPosicao, std::string> _ufmg_posicao_para_string;
+
+
         void carregar_dados_iniciais();
         void salvar_dados_usuarios();
         void salvar_dados_veiculos();
-        void salvar_dados_rotinas(); // Adicionado
-        void carregar_dados_rotinas(); // Adicionado
+        void salvar_dados_rotinas();
+        void carregar_dados_rotinas();
+        // Metodos para carregar e salvar caronas com as novas Zonas
+        void carregar_dados_caronas();
+        void salvar_dados_caronas();
+        // Metodos para carregar e salvar solicitacoes
+        void carregar_dados_solicitacoes();
+        void salvar_dados_solicitacoes();
+
 
         Usuario* buscar_usuario_por_cpf(const std::string& cpf);
         Carona* buscar_carona_por_id(int id);
@@ -39,7 +55,7 @@ namespace ufmg_carona {
         void exibir_menu_logado();
         void exibir_menu_passageiro();
         void exibir_menu_motorista();
-        void exibir_menu(); // Mantida para consistencia, mas lógica principal movida para executar()
+        void exibir_menu(); 
 
         void processar_comando_logado(const std::string& comando_str);
 
@@ -72,9 +88,23 @@ namespace ufmg_carona {
 
         void enviar_notificacao(Usuario* usuario, const std::string& mensagem);
         bool pode_solicitar_carona(Usuario* passageiro, const Carona& carona);
+        // Nova regra para cancelar solicitacoes do passageiro
+        void cancelar_outras_solicitacoes_passageiro(Usuario* passageiro, const Carona& carona_aceita);
+
 
         int coletar_int_input(const std::string& prompt, int min_val, int max_val);
+        std::string coletar_string_input(const std::string& prompt); // Função auxiliar para coletar string
         std::vector<DiaDaSemana> coletar_dias_da_semana(const std::string& prompt);
+        // Funcoes para coletar Zona e UFMGPosicao
+        Zona coletar_zona_input(const std::string& prompt);
+        UFMGPosicao coletar_ufmg_posicao_input(const std::string& prompt);
+
+        // Funcoes de conversao de enum para string
+        std::string zona_to_string(Zona z) const;
+        Zona string_to_zona(const std::string& s) const; // Para leitura de arquivos
+        std::string ufmg_posicao_to_string(UFMGPosicao up) const;
+        UFMGPosicao string_to_ufmg_posicao(const std::string& s) const; // Para leitura de arquivos
+
 
         std::tm parse_datetime_string(const std::string& dt_str) const;
         std::string get_current_datetime_string() const;
