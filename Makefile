@@ -1,7 +1,7 @@
 # Makefile Final com Estrutura de Diretórios Profissional
 
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude
+CXXFLAGS = -std=c++11 -Wall -Wextra -g -Iinclude # Alterado para C++11
 LDFLAGS = -static-libgcc -static-libstdc++
 
 # --- Estrutura de Diretórios ---

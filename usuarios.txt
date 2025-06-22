@@ -1,2 +1,3 @@
-11122233344;Ana Souza;31987654321;01/01/2000;Rua Alfa, 123;ana@ufmg.br;senha123;1;1;aluno;Ciencia da Computacao
-22233344455;Bruno Gomes;31998765432;15/05/1985;Avenida Beta, 456;bruno@ufmg.br;senha123;0;0;funcionario;DCC
+11122233344;Ana Souza;31985662384;01/01/2000;ricardo@gmail;123;1;0;aluno;Ciencia da Computacao
+14095366613;Ricardo Rocha;31985662384;05/03/2002;ricardorochaufmg@gmail.com;123;0;1;aluno;Engenharia de Controle e Automacao
+44455566677;Daniela Costa;3333333;20/07/1978;teste;123;1;1;funcionario;0
