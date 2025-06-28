@@ -35,6 +35,7 @@ namespace ufmg_carona {
         void recusar_proposta_motorista();
         
         void set_status(StatusSolicitacao novo_status);
+        void set_carona(Carona* new_carona_ptr); 
 
 
         Usuario* get_passageiro() const;

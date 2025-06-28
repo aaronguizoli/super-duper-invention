@@ -1,5 +1,5 @@
 #include "Avaliacao.hpp"
-#include "Usuario.hpp" // Incluido para a definicao completa de Usuario*
+#include "Usuario.hpp" 
 #include <iostream>
 
 namespace ufmg_carona {

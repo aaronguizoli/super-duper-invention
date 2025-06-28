@@ -8,8 +8,7 @@ int main() {
         app.executar();
     } catch (const ufmg_carona::AppExcecao& e) {
         if (std::string(e.what()) == "Sair") {
-            // Se for a excecao de saida, nao faz nada, permite que o programa termine.
-            // O destrutor de Sistema ja imprimira a mensagem de finalizacao.
+            
         } else {
             std::cerr << "ERRO FATAL: " << e.what() << std::endl;
             return 1;

@@ -41,4 +41,4 @@ namespace ufmg_carona {
     };
 }
 
-#endif // MOTORISTA_HPP
+#endif

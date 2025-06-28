@@ -2,7 +2,7 @@
 #define AVALIACAO_HPP
 #include <string>
 namespace ufmg_carona {
-    class Usuario; // Declaracao antecipada
+    class Usuario; 
     class Avaliacao {
     private:
         int _nota;

@@ -4,10 +4,6 @@
 #include "Zona.hpp"
 
 namespace ufmg_carona {
-    /**
-     * @class Pagamento
-     * @brief Gerencia o calculo e o estado de um pagamento, simulando uma taxa variavel.
-     */
     class Pagamento {
     private:
         double _valor;
@@ -27,4 +23,4 @@ namespace ufmg_carona {
     };
 }
 
-#endif // PAGAMENTO_HPP
+#endif

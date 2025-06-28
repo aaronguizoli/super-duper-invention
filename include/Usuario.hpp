@@ -50,6 +50,10 @@ namespace ufmg_carona {
         void set_telefone(const std::string& telefone);
         void set_senha(const std::string& senha);
         void set_genero(Genero genero);
+
+        void adicionar_notificacao(const Notificacao& notificacao);
+        const std::vector<Notificacao>& get_notificacoes() const;
+        std::vector<Notificacao>& get_notificacoes_mutavel();
     };
 }
 #endif

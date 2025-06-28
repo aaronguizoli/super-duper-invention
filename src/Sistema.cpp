@@ -19,14 +19,12 @@
 namespace ufmg_carona {
 
     Sistema::Sistema() : _usuario_logado(nullptr) {
-        // Inicializacao dos mapeamentos de Zona e UFMGPosicao
         _zona_para_string = {
             {Zona::PAMPULHA, "Pampulha"},
             {Zona::CENTRO_SUL, "Centro-Sul"},
             {Zona::NOROESTE, "Noroeste"},
             {Zona::LESTE, "Leste"},
             {Zona::OESTE, "Oeste"},
-            {Zona::NORTE, "Norte"},
             {Zona::VENDA_NOVA, "Venda Nova"},
             {Zona::BARREIRO, "Barreiro"}
         };
@@ -99,11 +97,11 @@ namespace ufmg_carona {
 
                 if (!_usuario_logado) {
                     if (is_numeric) {
-                        if (comando_int == 1) { // Cadastro
+                        if (comando_int == 1) { 
                             fluxo_cadastro();
-                        } else if (comando_int == 2) { // Login
+                        } else if (comando_int == 2) { 
                             fluxo_login();
-                        } else if (comando_int == 0) { // Sair
+                        } else if (comando_int == 0) { 
                             std::cout << "Saindo do programa..." << std::endl;
                             break;
                         } else {
@@ -161,25 +159,50 @@ namespace ufmg_carona {
         std::tm carona_tm = parse_datetime_string(dt_str);
         std::time_t carona_time = std::mktime(&carona_tm);
 
-        auto now = std::chrono::system_clock::now();
-        std::time_t current_time = std::chrono::system_clock::to_time_t(now);
-
         if (carona_time == -1) {
              std::cerr << "AVISO: Data/hora invalida para comparacao: " << dt_str << std::endl;
              return true;
         }
 
+        auto now = std::chrono::system_clock::now();
+        std::time_t current_time = std::chrono::system_clock::to_time_t(now);
+
+
         return std::difftime(current_time, carona_time) > 0;
     }
 
     void Sistema::remover_caronas_passadas() {
-        auto new_end = std::remove_if(_caronas.begin(), _caronas.end(),
-                                     [this](const Carona& carona) {
-                                         return is_datetime_in_past(carona.get_data_hora());
-                                     });
-        if (new_end != _caronas.end()) {
-            _caronas.erase(new_end, _caronas.end());
-            std::cout << "-> Caronas expiradas removidas." << std::endl;
+        std::vector<int> ids_caronas_removidas;
+        auto it = _caronas.begin();
+        while (it != _caronas.end()) {
+            if (is_datetime_in_past(it->get_data_hora())) {
+                ids_caronas_removidas.push_back(it->get_id());
+                it = _caronas.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        if (!ids_caronas_removidas.empty()) {
+            std::cout << "-> Caronas expiradas removidas. IDs: ";
+            for (int id : ids_caronas_removidas) {
+                std::cout << id << " ";
+            }
+            std::cout << std::endl;
+
+            for (Solicitacao* s : _solicitacoes) {
+                if (s->get_carona() && std::find(ids_caronas_removidas.begin(), ids_caronas_removidas.end(), s->get_carona()->get_id()) != ids_caronas_removidas.end()) {
+                    if (s->get_status() == StatusSolicitacao::PENDENTE || s->get_status() == StatusSolicitacao::AGUARDANDO_RESPOSTA_PASSAGEIRO) {
+                        s->set_status(StatusSolicitacao::RECUSADA);
+                        enviar_notificacao(s->get_passageiro(), "Sua solicitacao de carona para a carona ID " + std::to_string(s->get_carona()->get_id()) + " foi automaticamente recusada pois a carona expirou/foi removida.", false);
+                    } else if (s->get_status() == StatusSolicitacao::ACEITA) {
+                        s->set_status(StatusSolicitacao::RECUSADA);
+                        enviar_notificacao(s->get_passageiro(), "Sua carona aceita (ID " + std::to_string(s->get_carona()->get_id()) + ") foi cancelada pois a carona expirou/foi removida.", false);
+                    }
+                    s->set_carona(nullptr);
+                }
+            }
+            salvar_dados_solicitacoes();
         }
     }
 
@@ -261,16 +284,16 @@ namespace ufmg_carona {
             throw ComandoInvalidoException(comando_str);
         }
 
-        if (comando_int == 1) { // Perfil
+        if (comando_int == 1) { 
             _usuario_logado->imprimir_perfil();
             fluxo_editar_perfil_ou_veiculos();
-        } else if (comando_int == 2) { // Passageiro
+        } else if (comando_int == 2) { 
             fluxo_passageiro_menu();
-        } else if (comando_int == 3) { // Motorista
+        } else if (comando_int == 3) { 
             fluxo_motorista_menu();
-        } else if (comando_int == 4) { // Logout
+        } else if (comando_int == 4) { 
             fluxo_logout();
-        } else if (comando_int == 5) { // Sair do programa
+        } else if (comando_int == 5) { 
             std::cout << "Saindo do programa..." << std::endl;
             throw AppExcecao("Sair");
         } else {
@@ -279,9 +302,6 @@ namespace ufmg_carona {
     }
 
     void Sistema::exibir_menu() {
-        // Este metodo nao e mais usado diretamente como um dispatcher.
-        // As chamadas foram substituidas por exibir_menu_inicial_nao_logado()
-        // e exibir_menu_logado() dentro de 'executar()'.
     }
 
     void Sistema::exibir_menu_logado() {
@@ -296,7 +316,7 @@ namespace ufmg_carona {
 
     void Sistema::exibir_menu_motorista() {
         std::cout << "\n--- Menu Motorista ---" << std::endl;
-        std::cout << "(1) Oferecer Carona | (2) Gerenciar Solicitacoes | (3) Cadastrar Veiculo | (4) Gerenciar Rotinas | (0) Voltar" << std::endl;
+        std::cout << "(1) Oferecer Carona | (2) Gerenciar Caronas | (3) Cadastrar Veiculo | (4) Gerenciar Rotinas | (0) Voltar" << std::endl;
     }
 
     void Sistema::fluxo_passageiro_menu() {
@@ -340,7 +360,7 @@ namespace ufmg_carona {
                 if (comando == 1) {
                     fluxo_oferecer_carona();
                 } else if (comando == 2) {
-                    fluxo_gerenciar_solicitacoes();
+                    fluxo_gerenciar_caronas();
                 } else if (comando == 3) {
                     fluxo_cadastrar_veiculo();
                 } else if (comando == 4) {
@@ -478,10 +498,29 @@ namespace ufmg_carona {
         std::cout << "CPF: "; std::getline(std::cin, cpf);
         std::cout << "Senha: "; std::getline(std::cin, senha);
         Usuario* u = buscar_usuario_por_cpf(cpf);
-        if (u && u->verificar_senha(senha)) {
+        
+        if (!u) {
+            auto dados_ufmg = buscar_dados_ufmg_por_cpf(cpf);
+            if (std::get<0>(dados_ufmg)) {
+                throw AppExcecao("Voce ainda nao se cadastrou no sistema de caronas. Por favor, faca seu cadastro.");
+            } else {
+                throw AutenticacaoFalhouException();
+            }
+        }
+        
+        if (u->verificar_senha(senha)) {
             _usuario_logado = u;
             std::cout << "Login bem-sucedido!" << std::endl;
-        } else { throw AutenticacaoFalhouException(); }
+            
+            for (auto& notif : _usuario_logado->get_notificacoes_mutavel()) {
+                if (!notif.is_lida()) {
+                    std::cout << "[NOVA NOTIFICACAO]: " << notif.get_mensagem() << std::endl;
+                    notif.marcar_como_lida();
+                }
+            }
+        } else {
+            throw AutenticacaoFalhouException();
+        }
     }
 
     void Sistema::fluxo_logout() {
@@ -501,25 +540,25 @@ namespace ufmg_carona {
             std::string novo_valor;
 
             switch (escolha) {
-                case 1: // Email
+                case 1: 
                     std::cout << "Novo Email: ";
                     std::getline(std::cin, novo_valor);
                     _usuario_logado->set_email(novo_valor);
                     std::cout << "Email atualizado!" << std::endl;
                     break;
-                case 2: // Telefone
+                case 2: 
                     std::cout << "Novo Telefone (apenas numeros): ";
                     std::getline(std::cin, novo_valor);
                     _usuario_logado->set_telefone(novo_valor);
                     std::cout << "Telefone atualizado!" << std::endl;
                     break;
-                case 3: // Senha
+                case 3: 
                     std::cout << "Nova Senha: ";
                     std::getline(std::cin, novo_valor);
                     _usuario_logado->set_senha(novo_valor);
                     std::cout << "Senha atualizada!" << std::endl;
                     break;
-                case 4: { // Genero
+                case 4: { 
                     int gen_int = coletar_int_input("Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar): ", 0, 3);
                     _usuario_logado->set_genero(static_cast<Genero>(gen_int));
                     std::cout << "Genero atualizado!" << std::endl;
@@ -832,15 +871,15 @@ namespace ufmg_carona {
             std::cout << "[" << (i + 1) << "] ";
             
             std::cout << "Dias: ";
-            const std::vector<DiaDaSemana>& dias_da_rotina = rotina.get_dias();
-            if (dias_da_rotina.empty()) {
+            const std::vector<DiaDaSemana>& dias = rotina.get_dias();
+            if (dias.empty()) {
                 std::cout << "Nenhum";
-            } else if (dias_da_rotina.size() == 7) {
+            } else if (dias.size() == 7) {
                 std::cout << "Todos";
             } else {
-                for (size_t j = 0; j < dias_da_rotina.size(); ++j) {
-                    std::cout << dias_da_semana_map[dias_da_rotina[j]];
-                    if (j < dias_da_rotina.size() - 1) {
+                for (size_t j = 0; j < dias.size(); ++j) {
+                    std::cout << dias_da_semana_map[dias[j]];
+                    if (j < dias.size() - 1) {
                         std::cout << ",";
                     }
                 }
@@ -860,7 +899,7 @@ namespace ufmg_carona {
 
     void Sistema::fluxo_excluir_rotina(Motorista* motorista) {
         if (motorista->get_rotinas().empty()) {
-            std::cout << "Nenhuma rotina para excluir." << std::endl;
+            std::cout << "Nenhum rotina para excluir." << std::endl;
             return;
         }
 
@@ -1077,7 +1116,6 @@ namespace ufmg_carona {
         char apenas_mulheres_char;
         bool apenas_mulheres;
 
-        // Selecao da posicao da UFMG
         ufmg_posicao_escolhida = coletar_ufmg_posicao_input("A UFMG sera a origem ou o destino da carona?");
 
         if (ufmg_posicao_escolhida == UFMGPosicao::ORIGEM) {
@@ -1085,7 +1123,7 @@ namespace ufmg_carona {
             origem_zona = Zona::PAMPULHA;
             destino_zona = coletar_zona_input("Para qual zona administrativa voce ira?");
             destino_nome_str = zona_to_string(destino_zona);
-        } else { // UFMGPosicao::DESTINO
+        } else { 
             destino_nome_str = "UFMG Pampulha";
             destino_zona = Zona::PAMPULHA;
             origem_zona = coletar_zona_input("De qual zona administrativa voce saira?");
@@ -1122,7 +1160,7 @@ namespace ufmg_carona {
         std::string filtro_origem_str, filtro_destino_str, filtro_data, filtro_hora;
         Zona filtro_origem_zona = Zona::PAMPULHA;
         Zona filtro_destino_zona = Zona::PAMPULHA;
-        int filtro_genero_int = -1;
+        bool apenas_mulheres_filtro = false;
 
         char usar_filtro;
         std::cout << "Deseja usar filtros para buscar caronas? (s/n): ";
@@ -1160,11 +1198,13 @@ namespace ufmg_carona {
             filtro_hora = coletar_string_input("Filtro de Hora (HH:MM, deixe em branco para ignorar): ");
             
             if (_usuario_logado->get_genero() == Genero::FEMININO) {
-                std::cout << "Filtro de Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar, -1:Sem Filtro): ";
-                filtro_genero_int = coletar_int_input("", -1, 3);
+                char resp_apenas_mulheres;
+                std::cout << "Deseja caronas apenas com motoristas do genero feminino? (s/n): ";
+                std::cin >> resp_apenas_mulheres;
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                apenas_mulheres_filtro = (resp_apenas_mulheres == 's' || resp_apenas_mulheres == 'S');
             } else {
-                filtro_genero_int = -1;
-                std::cout << "Nota: A opcao 'Filtro de Genero' esta disponivel apenas para usuarias do genero feminino. Ignorando filtro de genero." << std::endl;
+                std::cout << "Nota: A opcao de filtrar caronas por genero esta disponivel apenas para usuarias do genero feminino." << std::endl;
             }
         }
 
@@ -1174,8 +1214,12 @@ namespace ufmg_carona {
                 continue; 
             }
 
-            if (is_datetime_in_past(carona.get_data_hora())) {
+            if (is_datetime_in_past(carona.get_data_hora()) || carona.get_status() == StatusCarona::CANCELADA || carona.get_status() == StatusCarona::FINALIZADA) {
                  continue;
+            }
+
+            if (carona.get_vagas_disponiveis() <= 0) {
+                continue;
             }
 
             bool atende_filtro_origem = filtro_origem_str.empty() || carona.get_origem_zona() == filtro_origem_zona;
@@ -1185,21 +1229,21 @@ namespace ufmg_carona {
             bool atende_filtro_hora = filtro_hora.empty() || carona.get_data_hora().find(filtro_hora) != std::string::npos;
 
             bool atende_filtro_genero = true;
-            if (filtro_genero_int != -1) {
-                if (carona.get_apenas_mulheres() && _usuario_logado->get_genero() != Genero::FEMININO) {
+            
+            if (carona.get_apenas_mulheres() && _usuario_logado->get_genero() != Genero::FEMININO) {
+                atende_filtro_genero = false;
+            }
+
+            
+            if (apenas_mulheres_filtro) {
+                
+                if (!carona.get_apenas_mulheres() && carona.get_motorista()->get_genero() != Genero::FEMININO) {
                     atende_filtro_genero = false;
-                } else if (carona.get_apenas_mulheres() && static_cast<Genero>(filtro_genero_int) != Genero::FEMININO) {
-                    atende_filtro_genero = false;
-                }
-                else if (!carona.get_apenas_mulheres() && static_cast<Genero>(filtro_genero_int) != Genero::PREFIRO_NAO_INFORMAR) {
-                    if (static_cast<Genero>(filtro_genero_int) != carona.get_motorista()->get_genero()) {
-                    }
                 }
             }
 
 
-            if (carona.get_vagas_disponiveis() > 0 &&
-                atende_filtro_origem && atende_filtro_destino &&
+            if (atende_filtro_origem && atende_filtro_destino &&
                 atende_filtro_data && atende_filtro_hora &&
                 atende_filtro_genero) {
                 caronas_filtradas.push_back(&carona);
@@ -1243,24 +1287,29 @@ namespace ufmg_carona {
         std::string mensagem = "Nova solicitacao de carona de " + _usuario_logado->get_nome() +
                               " para a carona ID: " + std::to_string(id_carona) +
                               ". Locais: Embarque em '" + local_embarque + "' e Desembarque em '" + local_desembarque + "'.";
-        enviar_notificacao(carona_escolhida->get_motorista(), mensagem);
+        enviar_notificacao(carona_escolhida->get_motorista(), mensagem, true);
 
         std::cout << "Solicitacao enviada com sucesso!" << std::endl;
     }
 
-    void Sistema::fluxo_gerenciar_solicitacoes() {
+    void Sistema::fluxo_solicitacoes_pendentes_motorista() {
         if (!_usuario_logado->is_motorista()) {
             std::cout << "Apenas motoristas podem gerenciar solicitacoes." << std::endl;
             return;
         }
 
-        std::cout << "\n--- Gerenciar Solicitacoes ---" << std::endl;
+        std::cout << "\n--- Solicitacoes Pendentes (Motorista) ---" << std::endl;
 
         std::vector<Solicitacao*> solicitacoes_motorista_pendentes;
         std::vector<Solicitacao*> solicitacoes_motorista_propostas;
 
         for (const auto& solicitacao : _solicitacoes) {
-            if (solicitacao->get_carona() && solicitacao->get_carona()->get_motorista() == _usuario_logado &&
+            if (!solicitacao->get_carona()) {
+                std::cerr << "AVISO: Solicitacao com carona invalida ignorada." << std::endl;
+                continue;
+            }
+
+            if (solicitacao->get_carona()->get_motorista() == _usuario_logado &&
                 !is_datetime_in_past(solicitacao->get_carona()->get_data_hora())) {
                 
                 if (solicitacao->get_status() == StatusSolicitacao::PENDENTE) {
@@ -1315,7 +1364,7 @@ namespace ufmg_carona {
 
         if (solicitacao_escolhida->get_status() == StatusSolicitacao::PENDENTE) {
             char acao_motorista;
-            std::cout << "\n--- Responder Solicitacao de " << solicitacao_escolhida->get_passageiro()->get_nome() << " ---" << std::endl;
+            std::cout << "\n--- Responder Solicitacao de " << (solicitacao_escolhida->get_passageiro() ? solicitacao_escolhida->get_passageiro()->get_nome() : "N/A") << " ---" << std::endl;
             std::cout << "Locais desejados pelo passageiro:" << std::endl;
             std::cout << "  Embarque: '" << solicitacao_escolhida->get_local_embarque_passageiro() << "'" << std::endl;
             std::cout << "  Desembarque: '" << solicitacao_escolhida->get_local_desembarque_passageiro() << "'" << std::endl;
@@ -1324,30 +1373,30 @@ namespace ufmg_carona {
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
             if (acao_motorista == 'A' || acao_motorista == 'a') {
-                if (solicitacao_escolhida->get_carona()->get_vagas_disponiveis() > 0) {
+                if (solicitacao_escolhida->get_carona() && solicitacao_escolhida->get_carona()->get_vagas_disponiveis() > 0) {
                     solicitacao_escolhida->aceitar();
                     solicitacao_escolhida->get_carona()->adicionar_passageiro(solicitacao_escolhida->get_passageiro());
                     enviar_notificacao(solicitacao_escolhida->get_passageiro(),
-                                    "Sua solicitacao de carona foi ACEITA! Locais confirmados: Embarque em '" + solicitacao_escolhida->get_local_embarque_passageiro() + "' e Desembarque em '" + solicitacao_escolhida->get_local_desembarque_passageiro() + "'.");
+                                    "Sua solicitacao de carona foi ACEITA! Locais confirmados: Embarque em '" + solicitacao_escolhida->get_local_embarque_passageiro() + "' e Desembarque em '" + solicitacao_escolhida->get_local_desembarque_passageiro() + "'.", false);
                     std::cout << "Solicitacao aceita!" << std::endl;
                     cancelar_outras_solicitacoes_passageiro(solicitacao_escolhida->get_passageiro(), *solicitacao_escolhida->get_carona());
                 } else {
                     solicitacao_escolhida->recusar();
                     enviar_notificacao(solicitacao_escolhida->get_passageiro(),
-                                    "Sua solicitacao de carona foi RECUSADA. Carona sem vagas.");
+                                    "Sua solicitacao de carona foi RECUSADA. Carona sem vagas.", false);
                     std::cout << "Nao foi possivel aceitar a solicitacao: carona sem vagas." << std::endl;
                 }
             } else if (acao_motorista == 'R' || acao_motorista == 'r') {
                 solicitacao_escolhida->recusar();
                 enviar_notificacao(solicitacao_escolhida->get_passageiro(),
-                                 "Sua solicitacao de carona foi RECUSADA.");
+                                 "Sua solicitacao de carona foi RECUSADA.", false);
                 std::cout << "Solicitacao recusada." << std::endl;
             } else if (acao_motorista == 'P' || acao_motorista == 'p') {
                 std::string nova_origem_motorista = coletar_string_input("Propor novo local de embarque: ");
                 std::string novo_destino_motorista = coletar_string_input("Propor novo local de desembarque: ");
                 solicitacao_escolhida->propor_locais_motorista(nova_origem_motorista, novo_destino_motorista);
                 enviar_notificacao(solicitacao_escolhida->get_passageiro(),
-                                 "O motorista propos novos locais para sua solicitacao de carona. Por favor, verifique.");
+                                 "O motorista propos novos locais para sua solicitacao de carona. Por favor, verifique.", false);
                 std::cout << "Proposta de novos locais enviada ao passageiro." << std::endl;
             } else {
                 std::cout << "Acao cancelada." << std::endl;
@@ -1358,13 +1407,142 @@ namespace ufmg_carona {
         salvar_dados_solicitacoes();
     }
 
+
+    void Sistema::fluxo_gerenciar_caronas() {
+        if (!_usuario_logado->is_motorista()) {
+            std::cout << "Voce nao e motorista. Nao e possivel gerenciar caronas." << std::endl;
+            return;
+        }
+        Motorista* motorista_logado = dynamic_cast<Motorista*>(_usuario_logado);
+        if (!motorista_logado) {
+            std::cerr << "ERRO INTERNO: Usuario logado deveria ser motorista mas nao pode ser convertido." << std::endl;
+            return;
+        }
+
+        int comando;
+        do {
+            std::cout << "\n--- Gerenciar Caronas ---" << std::endl;
+            std::cout << "(1) Solicitacoes Pendentes | (2) Minhas Caronas | (0) Voltar" << std::endl;
+            comando = coletar_int_input("> ", 0, 2);
+
+            try {
+                if (comando == 1) {
+                    fluxo_solicitacoes_pendentes_motorista();
+                } else if (comando == 2) {
+                    fluxo_minhas_caronas(motorista_logado);
+                }
+            } catch (const AppExcecao& e) {
+                std::cerr << "ERRO: " << e.what() << std::endl;
+            }
+        } while (comando != 0);
+    }
+
+    void Sistema::fluxo_minhas_caronas(Motorista* motorista_logado) {
+        std::cout << "\n--- Minhas Caronas Ofertadas ---" << std::endl;
+        remover_caronas_passadas();
+
+        std::vector<Carona*> caronas_do_motorista;
+        for (auto& carona : _caronas) {
+            if (carona.get_motorista() == motorista_logado &&
+                carona.get_status() != StatusCarona::CANCELADA &&
+                carona.get_status() != StatusCarona::FINALIZADA) {
+                caronas_do_motorista.push_back(&carona);
+            }
+        }
+
+        if (caronas_do_motorista.empty()) {
+            std::cout << "Voce nao possui caronas ofertadas no momento." << std::endl;
+            return;
+        }
+
+        std::cout << "Suas caronas ativas:" << std::endl;
+        for (size_t i = 0; i < caronas_do_motorista.size(); ++i) {
+            Carona* carona = caronas_do_motorista[i];
+            std::cout << "\n[" << (i + 1) << "] Carona ID: " << carona->get_id();
+            std::cout << " | De: " << carona->get_origem() << " Para: " << carona->get_destino();
+            std::cout << " | Data/Hora: " << carona->get_data_hora();
+            std::cout << " | Vagas: " << carona->get_vagas_disponiveis();
+            std::cout << " | Status: " << (carona->get_status() == StatusCarona::AGUARDANDO ? "Aguardando Passageiros" : "Lotada/Confirmada") << std::endl;
+
+
+            std::vector<Usuario*> passageiros_confirmados; 
+            for (const auto& solicitacao : _solicitacoes) {
+                if (solicitacao->get_carona() && solicitacao->get_carona() == carona && solicitacao->get_status() == StatusSolicitacao::ACEITA) {
+                    
+                    passageiros_confirmados.push_back(solicitacao->get_passageiro());
+                }
+            }
+            if (!passageiros_confirmados.empty()) {
+                std::cout << "  Passageiros confirmados (" << passageiros_confirmados.size() << "):" << std::endl;
+                
+                for (Usuario* passageiro : passageiros_confirmados) {
+                    std::cout << "    - " << (passageiro ? passageiro->get_nome() : "N/A")
+                              << " (Tel: " << (passageiro ? passageiro->get_telefone() : "N/A")
+                              << ", Email: " << (passageiro ? passageiro->get_email() : "N/A") << ")" << std::endl;
+                }
+            } else {
+                std::cout << "  Nenhum passageiro confirmado ainda." << std::endl;
+            }
+        }
+
+        int escolha_carona_idx = coletar_int_input("\nDigite o numero da carona para gerenciar (0 para voltar): ", 0, caronas_do_motorista.size());
+        if (escolha_carona_idx == 0) return;
+
+        Carona* carona_escolhida = caronas_do_motorista[escolha_carona_idx - 1];
+
+        char acao_carona;
+        std::cout << "\nGerenciar Carona ID: " << carona_escolhida->get_id() << std::endl;
+        std::cout << "(C)ancelar Carona | (0) Voltar: ";
+        std::cin >> acao_carona;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+        if (acao_carona == 'C' || acao_carona == 'c') {
+            char confirmar_cancelamento;
+            std::cout << "Tem certeza que deseja CANCELAR esta carona para TODOS os passageiros? (s/n): ";
+            std::cin >> confirmar_cancelamento;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            if (confirmar_cancelamento == 's' || confirmar_cancelamento == 'S') {
+                cancelar_carona_completa(carona_escolhida);
+                std::cout << "Carona ID " << carona_escolhida->get_id() << " cancelada com sucesso." << std::endl;
+            } else {
+                std::cout << "Cancelamento de carona abortado." << std::endl;
+            }
+        } else {
+            std::cout << "Voltando..." << std::endl;
+        }
+    }
+
+    void Sistema::cancelar_carona_completa(Carona* carona_para_cancelar) {
+        if (!carona_para_cancelar) return;
+
+        carona_para_cancelar->set_status(StatusCarona::CANCELADA);
+
+        for (Solicitacao* s : _solicitacoes) {
+            if (s->get_carona() && s->get_carona() == carona_para_cancelar) {
+                if (s->get_status() == StatusSolicitacao::ACEITA ||
+                    s->get_status() == StatusSolicitacao::PENDENTE ||
+                    s->get_status() == StatusSolicitacao::AGUARDANDO_RESPOSTA_PASSAGEIRO) {
+                    
+                    s->set_status(StatusSolicitacao::RECUSADA);
+                    enviar_notificacao(s->get_passageiro(), "A carona ID " + (carona_para_cancelar ? std::to_string(carona_para_cancelar->get_id()) : "N/A") +
+                                     " de " + (carona_para_cancelar && carona_para_cancelar->get_motorista() ? carona_para_cancelar->get_motorista()->get_nome() : "Motorista Desconhecido") + " foi CANCELADA. Por favor, busque outra carona.", false);
+                    s->set_carona(nullptr);
+                }
+            }
+        }
+
+        salvar_dados_solicitacoes();
+        salvar_dados_caronas();
+    }
+
+
     void Sistema::fluxo_status_caronas() {
         std::cout << "\n--- Status das Minhas Solicitacoes ---" << std::endl;
 
         std::vector<Solicitacao*> minhas_solicitacoes;
         for (const auto& solicitacao : _solicitacoes) {
             if (solicitacao->get_passageiro() == _usuario_logado) {
-                minhas_solicitacoes.push_back(solicitacao);
+                minhas_solicitacoes.push_back(solicitacao); 
             }
         }
 
@@ -1375,15 +1553,31 @@ namespace ufmg_carona {
 
         for (size_t i = 0; i < minhas_solicitacoes.size(); ++i) {
             Solicitacao* solicitacao = minhas_solicitacoes[i];
+            if (!solicitacao->get_carona()) {
+                std::cerr << "AVISO: Solicitacao com carona invalida ignorada ao exibir status." << std::endl;
+                continue;
+            }
+
+            if (is_datetime_in_past(solicitacao->get_carona()->get_data_hora()) || 
+                solicitacao->get_carona()->get_status() == StatusCarona::CANCELADA ||
+                solicitacao->get_carona()->get_status() == StatusCarona::FINALIZADA) {
+                continue; 
+            }
+
             std::cout << "\n--- Solicitacao [" << (i+1) << "] ---" << std::endl;
             std::cout << "Carona: " << zona_to_string(solicitacao->get_carona()->get_origem_zona())
                       << " -> " << zona_to_string(solicitacao->get_carona()->get_destino_zona()) << std::endl;
             std::cout << "Data: " << solicitacao->get_carona()->get_data_hora() << std::endl;
-            std::cout << "Motorista: " << solicitacao->get_carona()->get_motorista()->get_nome() << std::endl;
+            std::cout << "Motorista: " << (solicitacao->get_carona()->get_motorista() ? solicitacao->get_carona()->get_motorista()->get_nome() : "N/A") << std::endl;
             std::cout << "Status: " << solicitacao->get_status_string() << std::endl;
             
-            std::cout << "  Seu local de embarque desejado: '" << solicitacao->get_local_embarque_passageiro() << "'" << std::endl;
-            std::cout << "  Seu local de desembarque desejado: '" << solicitacao->get_local_desembarque_passageiro() << "'" << std::endl;
+            if (solicitacao->get_status() == StatusSolicitacao::ACEITA && !solicitacao->get_local_embarque_motorista_proposto().empty()) {
+                std::cout << "  Seu local de embarque: '" << solicitacao->get_local_embarque_motorista_proposto() << "'" << std::endl;
+                std::cout << "  Seu local de desembarque: '" << solicitacao->get_local_desembarque_motorista_proposto() << "'" << std::endl;
+            } else {
+                std::cout << "  Seu local de embarque desejado: '" << solicitacao->get_local_embarque_passageiro() << "'" << std::endl;
+                std::cout << "  Seu local de desembarque desejado: '" << solicitacao->get_local_desembarque_passageiro() << "'" << std::endl;
+            }
 
             if (solicitacao->get_status() == StatusSolicitacao::AGUARDANDO_RESPOSTA_PASSAGEIRO) {
                 std::cout << "  Motorista propos:\n    Embarque: '" << solicitacao->get_local_embarque_motorista_proposto() << "'\n    Desembarque: '" << solicitacao->get_local_desembarque_motorista_proposto() << "'" << std::endl;
@@ -1393,32 +1587,32 @@ namespace ufmg_carona {
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
                 if (resposta_proposta == 's' || resposta_proposta == 'S') {
-                    if (solicitacao->get_carona()->get_vagas_disponiveis() > 0) {
+                    if (solicitacao->get_carona() && solicitacao->get_carona()->get_vagas_disponiveis() > 0) {
                         solicitacao->aceitar_proposta_motorista();
                         solicitacao->get_carona()->adicionar_passageiro(solicitacao->get_passageiro());
                         enviar_notificacao(solicitacao->get_carona()->get_motorista(),
-                                        "O passageiro " + solicitacao->get_passageiro()->get_nome() + " ACEITOU sua proposta de locais para a carona ID " + std::to_string(solicitacao->get_carona()->get_id()) + "!");
+                                        "O passageiro " + (solicitacao->get_passageiro() ? solicitacao->get_passageiro()->get_nome() : "N/A") + " ACEITOU sua proposta de locais para a carona ID " + std::to_string(solicitacao->get_carona()->get_id()) + "!");
                         std::cout << "Proposta do motorista aceita! Carona confirmada." << std::endl;
                         cancelar_outras_solicitacoes_passageiro(solicitacao->get_passageiro(), *solicitacao->get_carona());
                     } else {
                         solicitacao->recusar();
                         enviar_notificacao(solicitacao->get_carona()->get_motorista(),
-                                        "O passageiro " + solicitacao->get_passageiro()->get_nome() + " ACEITOU sua proposta, mas a carona nao tem mais vagas. Solicitacao RECUSADA.");
+                                        "O passageiro " + (solicitacao->get_passageiro() ? solicitacao->get_passageiro()->get_nome() : "N/A") + " ACEITOU sua proposta, mas a carona nao tem mais vagas. Solicitacao RECUSADA.");
                         enviar_notificacao(solicitacao->get_passageiro(),
-                                        "Sua aceitacao da proposta do motorista nao pode ser concluida: a carona nao possui mais vagas.");
+                                        "Sua aceitacao da proposta do motorista nao pode ser concluida: a carona nao possui mais vagas.", false);
                         std::cout << "Nao foi possivel confirmar a carona: sem vagas disponiveis." << std::endl;
                     }
                 } else {
                     solicitacao->recusar_proposta_motorista();
                     enviar_notificacao(solicitacao->get_carona()->get_motorista(),
-                                     "O passageiro " + solicitacao->get_passageiro()->get_nome() + " RECUSOU sua proposta de locais para a carona ID " + std::to_string(solicitacao->get_carona()->get_id()) + ".");
+                                     "O passageiro " + (solicitacao->get_passageiro() ? solicitacao->get_passageiro()->get_nome() : "N/A") + " RECUSOU sua proposta de locais para a carona ID " + std::to_string(solicitacao->get_carona()->get_id()) + ".");
                     std::cout << "Proposta do motorista recusada pelo passageiro. Solicitacao nao confirmada." << std::endl;
                 }
                 salvar_dados_solicitacoes();
             }
 
 
-            if (is_datetime_in_past(solicitacao->get_carona()->get_data_hora())) {
+            if (solicitacao->get_carona() && is_datetime_in_past(solicitacao->get_carona()->get_data_hora())) {
                 std::cout << "OBS: Esta carona ja ocorreu ou o horario de partida ja passou." << std::endl;
             }
         }
@@ -1770,9 +1964,15 @@ namespace ufmg_carona {
         return nullptr;
     }
 
-    void Sistema::enviar_notificacao(Usuario* usuario, const std::string& mensagem) {
+    void Sistema::enviar_notificacao(Usuario* usuario, const std::string& mensagem, bool enviar_para_motorista) {
         if (usuario) {
-            std::cout << "[NOTIFICACAO para " << usuario->get_nome() << "]: " << mensagem << std::endl;
+            Notificacao nova_notificacao(mensagem);
+            usuario->adicionar_notificacao(nova_notificacao);
+
+            if (usuario->is_motorista() && !enviar_para_motorista) {
+            } else {
+                std::cout << "[NOTIFICACAO para " << usuario->get_nome() << "]: " << mensagem << std::endl;
+            }
         }
     }
 
@@ -1786,14 +1986,21 @@ namespace ufmg_carona {
             std::cout << "Esta carona nao possui vagas disponiveis." << std::endl;
             return false;
         }
+        
+        if (carona.get_status() == StatusCarona::CANCELADA || carona.get_status() == StatusCarona::FINALIZADA) {
+            std::cout << "Esta carona nao esta mais disponivel para solicitacao." << std::endl;
+            return false;
+        }
 
         for (const auto& solicitacao : _solicitacoes) {
+            if (!solicitacao->get_carona()) continue;
+
             if (solicitacao->get_passageiro() == passageiro &&
                 solicitacao->get_carona()->get_id() == carona.get_id()) {
                 if (solicitacao->get_status() == StatusSolicitacao::PENDENTE) {
                     std::cout << "Voce ja tem uma solicitacao PENDENTE para esta carona!" << std::endl;
                     return false;
-                } else if (solicitacao->get_status() == StatusSolicitacao::ACEITA) { // CORREÇÃO: Usar 'solicitacao'
+                } else if (solicitacao->get_status() == StatusSolicitacao::ACEITA) {
                     std::cout << "Voce ja foi ACEITO nesta carona!" << std::endl;
                     return false;
                 } else if (solicitacao->get_status() == StatusSolicitacao::AGUARDANDO_RESPOSTA_PASSAGEIRO) {
@@ -1810,15 +2017,16 @@ namespace ufmg_carona {
         
         for (Solicitacao* s : _solicitacoes) {
             if (s->get_passageiro() == passageiro && 
+                s->get_carona() &&
                 s->get_carona()->get_id() != carona_aceita.get_id() &&
                 (s->get_status() == StatusSolicitacao::PENDENTE || s->get_status() == StatusSolicitacao::AGUARDANDO_RESPOSTA_PASSAGEIRO) &&
                 s->get_carona()->get_destino_zona() == carona_aceita.get_destino_zona() &&
                 s->get_carona()->get_data_hora().substr(0, 10) == carona_aceita.get_data_hora().substr(0, 10)) {
                 
                 s->recusar();
-                enviar_notificacao(s->get_passageiro(), "Sua solicitacao para carona " + std::to_string(s->get_carona()->get_id()) +
-                                 " foi automaticamente cancelada pois outra carona para o mesmo destino/dia foi aceita.");
-                std::cout << "   - Solicitacao ID " << s->get_carona()->get_id() << " para " << zona_to_string(s->get_carona()->get_destino_zona()) << " em " << s->get_carona()->get_data_hora().substr(0,10) << " foi cancelada." << std::endl;
+                enviar_notificacao(s->get_passageiro(), "Sua solicitacao para carona " + (s->get_carona() ? std::to_string(s->get_carona()->get_id()) : "N/A") +
+                                 " foi automaticamente cancelada pois outra carona para o mesmo destino/dia foi aceita.", false);
+                std::cout << "   - Solicitacao ID " << (s->get_carona() ? std::to_string(s->get_carona()->get_id()) : "N/A") << " para " << (s->get_carona() ? zona_to_string(s->get_carona()->get_destino_zona()) : "N/A") << " em " << (s->get_carona() ? s->get_carona()->get_data_hora().substr(0,10) : "N/A") << " foi cancelada." << std::endl;
             }
         }
         salvar_dados_solicitacoes();
@@ -1832,10 +2040,11 @@ namespace ufmg_carona {
         }
 
         std::string linha, cpf_motorista, origem_nome, destino_nome, data, apenas_mulheres_str, placa_veiculo_carona,
-                    origem_zona_str, destino_zona_str, ufmg_posicao_str;
+                    origem_zona_str, destino_zona_str, ufmg_posicao_str, status_str_lido;
         int caronas_carregadas = 0;
         while (std::getline(arquivo_caronas, linha)) {
             std::stringstream ss(linha);
+
             std::getline(ss, cpf_motorista, ';');
             std::getline(ss, origem_nome, ';');
             std::getline(ss, destino_nome, ';');
@@ -1844,7 +2053,19 @@ namespace ufmg_carona {
             std::getline(ss, ufmg_posicao_str, ';');
             std::getline(ss, data, ';');
             std::getline(ss, apenas_mulheres_str, ';');
-            std::getline(ss, placa_veiculo_carona);
+            
+            std::string resto_linha;
+            std::getline(ss, resto_linha);
+            
+            size_t pos_status = resto_linha.find_last_of(';');
+            if (pos_status != std::string::npos) {
+                placa_veiculo_carona = resto_linha.substr(0, pos_status);
+                status_str_lido = resto_linha.substr(pos_status + 1);
+            } else {
+                placa_veiculo_carona = resto_linha;
+                status_str_lido = "AGUARDANDO";
+            }
+
 
             bool apenas_mulheres_lida;
             try {
@@ -1878,7 +2099,21 @@ namespace ufmg_carona {
                 Zona destino_zona_lida = string_to_zona(destino_zona_str);
                 UFMGPosicao ufmg_posicao_lida = string_to_ufmg_posicao(ufmg_posicao_str);
 
-                _caronas.push_back(CaronaFactory::criar_carona(origem_nome, destino_nome, origem_zona_lida, destino_zona_lida, ufmg_posicao_lida, data, motorista_ptr, veiculo_usado_carona, apenas_mulheres_lida, TipoCarona::AGENDADA));
+                Carona nova_carona_carregada = CaronaFactory::criar_carona(origem_nome, destino_nome, origem_zona_lida, destino_zona_lida, ufmg_posicao_lida, data, motorista_ptr, veiculo_usado_carona, apenas_mulheres_lida, TipoCarona::AGENDADA);
+                
+                if (status_str_lido == "CANCELADA") {
+                    nova_carona_carregada.set_status(StatusCarona::CANCELADA);
+                } else if (status_str_lido == "FINALIZADA") {
+                    nova_carona_carregada.set_status(StatusCarona::FINALIZADA);
+                } else if (status_str_lido == "EM_VIAGEM") {
+                    nova_carona_carregada.set_status(StatusCarona::EM_VIAGEM);
+                } else if (status_str_lido == "LOTADA") {
+                    nova_carona_carregada.set_status(StatusCarona::LOTADA);
+                } else {
+                    nova_carona_carregada.set_status(StatusCarona::AGUARDANDO);
+                }
+
+                _caronas.push_back(nova_carona_carregada);
                 caronas_carregadas++;
             } else {
                 std::cerr << "AVISO: Motorista com CPF " << cpf_motorista << " para carona " << origem_nome << "->" << destino_nome << " nao encontrado. Carona nao carregada." << std::endl;
@@ -1895,6 +2130,15 @@ namespace ufmg_carona {
             return;
         }
 
+        std::map<StatusCarona, std::string> status_carona_para_string = {
+            {StatusCarona::AGUARDANDO, "AGUARDANDO"},
+            {StatusCarona::LOTADA, "LOTADA"},
+            {StatusCarona::EM_VIAGEM, "EM_VIAGEM"},
+            {StatusCarona::FINALIZADA, "FINALIZADA"},
+            {StatusCarona::CANCELADA, "CANCELADA"}
+        };
+
+
         int caronas_salvas = 0;
         for (const auto& carona : _caronas) {
             arquivo_caronas << carona.get_motorista()->get_cpf() << ";"
@@ -1905,11 +2149,13 @@ namespace ufmg_carona {
                             << ufmg_posicao_to_string(carona.get_ufmg_posicao()) << ";"
                             << carona.get_data_hora() << ";"
                             << (carona.get_apenas_mulheres() ? "1" : "0") << ";"
-                            << carona.get_veiculo_usado()->get_placa() << std::endl;
+                            << carona.get_veiculo_usado()->get_placa() << ";"
+                            << status_carona_para_string[carona.get_status()]
+                            << std::endl;
             caronas_salvas++;
         }
         arquivo_caronas.close();
-        std::cout << "-> " << caronas_salvas << " caronas salvas em caronas.txt." << std::endl;
+        std::cout << "-> " << caronas_salvas << " caronas salvos em caronas.txt." << std::endl;
     }
 
     void Sistema::carregar_dados_solicitacoes() {

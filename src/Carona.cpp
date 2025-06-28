@@ -10,14 +10,13 @@
 namespace ufmg_carona {
     int Carona::_proximo_id = 1;
 
-    // Construtor atualizado
     Carona::Carona(std::string origem_nome, std::string destino_nome, Zona origem_zona, Zona destino_zona, UFMGPosicao ufmg_posicao, std::string data, Usuario* motorista, Veiculo* veiculo_usado, bool apenas_mulheres, TipoCarona tipo)
         : _id(gerar_proximo_id()),
           _origem_nome(origem_nome),
           _destino_nome(destino_nome),
-          _origem_zona(origem_zona), // Inicializando novo atributo
-          _destino_zona(destino_zona), // Inicializando novo atributo
-          _ufmg_posicao(ufmg_posicao), // Inicializando novo atributo
+          _origem_zona(origem_zona),
+          _destino_zona(destino_zona),
+          _ufmg_posicao(ufmg_posicao),
           _data_hora_partida(data),
           _motorista(motorista),
           _veiculo_usado(veiculo_usado),
@@ -41,13 +40,15 @@ namespace ufmg_carona {
     int Carona::get_id() const { return _id; }
     Usuario* Carona::get_motorista() const { return _motorista; }
     Veiculo* Carona::get_veiculo_usado() const { return _veiculo_usado; }
-    const std::string& Carona::get_origem() const { return _origem_nome; } // Retorna o nome da origem
-    const std::string& Carona::get_destino() const { return _destino_nome; } // Retorna o nome do destino
+    const std::string& Carona::get_origem() const { return _origem_nome; }
+    const std::string& Carona::get_destino() const { return _destino_nome; }
     
-    // Novos Getters para as Zonas
     Zona Carona::get_origem_zona() const { return _origem_zona; }
     Zona Carona::get_destino_zona() const { return _destino_zona; }
     UFMGPosicao Carona::get_ufmg_posicao() const { return _ufmg_posicao; }
+
+    StatusCarona Carona::get_status() const { return _status; }
+    void Carona::set_status(StatusCarona novo_status) { _status = novo_status; }
 
     const std::string& Carona::get_data_hora() const { return _data_hora_partida; }
     int Carona::get_vagas_disponiveis() const { return _vagas_disponiveis; }
@@ -55,7 +56,7 @@ namespace ufmg_carona {
 
     void Carona::exibir_info() const {
         std::cout << "\n--- Carona ID: " << _id << " ---" << std::endl;
-        std::cout << "De: " << _origem_nome << " -> Para: " << _destino_nome << std::endl; // Exibe os nomes
+        std::cout << "De: " << _origem_nome << " -> Para: " << _destino_nome << std::endl;
         std::cout << "Data/Hora: " << _data_hora_partida << std::endl;
         
         if (_motorista) {
@@ -75,6 +76,15 @@ namespace ufmg_carona {
         if (_apenas_mulheres) {
             std::cout << ">> Viagem exclusiva para mulheres <<" << std::endl;
         }
+        std::cout << "Status da Carona: ";
+        switch (_status) {
+            case StatusCarona::AGUARDANDO: std::cout << "AGUARDANDO"; break;
+            case StatusCarona::LOTADA: std::cout << "LOTADA"; break;
+            case StatusCarona::EM_VIAGEM: std::cout << "EM VIAGEM"; break;
+            case StatusCarona::FINALIZADA: std::cout << "FINALIZADA"; break;
+            case StatusCarona::CANCELADA: std::cout << "CANCELADA"; break;
+        }
+        std::cout << std::endl;
     }
 
     void Carona::exibir_info_detalhada() const {

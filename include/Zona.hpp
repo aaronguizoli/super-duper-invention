@@ -2,6 +2,6 @@
 #define ZONA_HPP
 namespace ufmg_carona {
     enum class Zona { PAMPULHA, CENTRO_SUL, NOROESTE, LESTE, OESTE, NORTE, VENDA_NOVA, BARREIRO };
-    enum class UFMGPosicao { ORIGEM, DESTINO }; // <<< DEVE ESTAR AQUI E SOMENTE AQUI
+    enum class UFMGPosicao { ORIGEM, DESTINO }; 
 }
 #endif

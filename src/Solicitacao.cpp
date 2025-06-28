@@ -34,6 +34,10 @@ namespace ufmg_carona {
         _status = novo_status;
     }
 
+    void Solicitacao::set_carona(Carona* new_carona_ptr) { 
+        _carona_alvo = new_carona_ptr;
+    }
+
     Usuario* Solicitacao::get_passageiro() const { return _passageiro; }
     Carona* Solicitacao::get_carona() const { return _carona_alvo; }
     StatusSolicitacao Solicitacao::get_status() const { return _status; }
@@ -56,7 +60,7 @@ namespace ufmg_carona {
 
 
     void Solicitacao::exibir_info() const {
-        std::cout << "Carona ID: " << _carona_alvo->get_id()
+        std::cout << "Carona ID: " << (_carona_alvo ? std::to_string(_carona_alvo->get_id()) : "N/A") 
                   << " | Status: " << get_status_string() << std::endl;
         std::cout << "  Seu embarque: '" << _local_embarque_passageiro << "'" << std::endl;
         std::cout << "  Seu desembarque: '" << _local_desembarque_passageiro << "'" << std::endl;
@@ -67,8 +71,8 @@ namespace ufmg_carona {
     }
 
     void Solicitacao::exibir_para_motorista() const {
-        std::cout << "Solicitacao de: " << _passageiro->get_nome()
-                  << " | Carona ID: " << _carona_alvo->get_id()
+        std::cout << "Solicitacao de: " << (_passageiro ? _passageiro->get_nome() : "N/A") 
+                  << " | Carona ID: " << (_carona_alvo ? std::to_string(_carona_alvo->get_id()) : "N/A") 
                   << " | Status: " << get_status_string() << std::endl;
         std::cout << "  Passageiro propos: Embarque em '" << _local_embarque_passageiro
                   << "', Desembarque em '" << _local_desembarque_passageiro << "'" << std::endl;

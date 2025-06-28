@@ -2,7 +2,7 @@
 #define CARONA_HPP
 #include <string>
 #include <vector>
-#include "Zona.hpp" // Manter apenas esta inclusao, UFMGPosicao ja vem daqui
+#include "Zona.hpp"
 
 namespace ufmg_carona {
     class Usuario;
@@ -13,9 +13,6 @@ namespace ufmg_carona {
     enum class TipoCarona { AGENDADA, IMEDIATA };
     enum class StatusCarona { AGUARDANDO, LOTADA, EM_VIAGEM, FINALIZADA, CANCELADA };
 
-    // REMOVER ESTE BLOCO:
-    // enum class UFMGPosicao { ORIGEM, DESTINO }; // <<<<<<<<<< REMOVER ESTA LINHA E QUALQUER DEFINICAO RELACIONADA
-
     class Carona {
     private:
         int _id;
@@ -24,7 +21,7 @@ namespace ufmg_carona {
         std::string _destino_nome;
         Zona _origem_zona;
         Zona _destino_zona;
-        UFMGPosicao _ufmg_posicao; // Manter o uso do UFMGPosicao, pois ele sera incluido via Zona.hpp
+        UFMGPosicao _ufmg_posicao;
         
         std::string _data_hora_partida;
         Usuario* _motorista;
@@ -48,6 +45,8 @@ namespace ufmg_carona {
         Zona get_origem_zona() const;
         Zona get_destino_zona() const;
         UFMGPosicao get_ufmg_posicao() const;
+        StatusCarona get_status() const;
+        void set_status(StatusCarona novo_status);
 
         const std::string& get_data_hora() const;
         int get_vagas_disponiveis() const;
