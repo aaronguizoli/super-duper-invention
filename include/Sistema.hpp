@@ -1,118 +1,60 @@
 #ifndef SISTEMA_HPP
 #define SISTEMA_HPP
-#include <vector>
+
 #include <string>
-#include <tuple>
-#include <fstream>
-#include <ctime>
-#include <map>
-#include "Usuario.hpp"
-#include "Motorista.hpp"
-#include "Carona.hpp"
-#include "Solicitacao.hpp"
-#include "Genero.hpp"
-#include "Veiculo.hpp"
-#include "Rotina.hpp"
-#include "Zona.hpp"
+#include <tuple> // Para buscarDadosUfmgPorCpf
+
+// Forward declarations para as novas classes de gerenciamento
+namespace ufmg_carona {
+    class GerenciadorUsuarios;
+    class GerenciadorCaronas;
+    class GerenciadorSolicitacoes;
+    class GerenciadorAvaliacoes;
+    class GerenciadorVeiculos; // Adicionado
+    class TerminalIO;
+    class Usuario; // Necessário para _usuario_logado
+    class Motorista; // Necessário para downcast
+}
 
 namespace ufmg_carona {
     class Sistema {
     private:
-        std::vector<Usuario*> _usuarios;
-        std::vector<Carona> _caronas;
-        std::vector<Solicitacao*> _solicitacoes;
-        Usuario* _usuario_logado;
+        GerenciadorUsuarios* _gerenciadorUsuarios;
+        GerenciadorCaronas* _gerenciadorCaronas;
+        GerenciadorSolicitacoes* _gerenciadorSolicitacoes;
+        GerenciadorAvaliacoes* _gerenciadorAvaliacoes;
+        GerenciadorVeiculos* _gerenciadorVeiculos;
+        TerminalIO* _terminalIO; // Adicionado
 
-        std::map<int, Zona> _int_para_zona;
-        std::map<Zona, std::string> _zona_para_string;
-        std::map<int, UFMGPosicao> _int_para_ufmg_posicao;
-        std::map<UFMGPosicao, std::string> _ufmg_posicao_para_string;
+        Usuario* _usuario_logado; // Permanece aqui, gerenciado pelo Sistema
 
+        void carregarTodosDados();
+        void salvarTodosDados();
+        
+        // MANTIDO COMO NÃO-ESTÁTICO, ACESSANDO _terminalIO
+        std::tuple<bool, std::string, std::string, std::string, std::string> buscarDadosUfmgPorCpf(const std::string& cpf_buscado);
 
-        void carregar_dados_iniciais();
-        void salvar_dados_usuarios();
-        void salvar_dados_veiculos();
-        void salvar_dados_rotinas();
-        void carregar_dados_rotinas();
-        void carregar_dados_caronas();
-        void salvar_dados_caronas();
-        void carregar_dados_solicitacoes();
-        void salvar_dados_solicitacoes();
+        // Funções de menu movidas para TerminalIO, mas mantidas as chamadas de orquestração aqui
+        // Estas são chamadas de métodos de TerminalIO que exibem o menu.
+        void exibirMenuInicialNaoLogado();
+        void exibirMenuLogado();
+        void exibirMenuPassageiro();
+        void exibirMenuMotorista();
 
+        // Roteador de comandos para usuário logado
+        void processarComandoLogado(const std::string& comando_str);
 
-        Usuario* buscar_usuario_por_cpf(const std::string& cpf);
-        Carona* buscar_carona_por_id(int id);
-        Veiculo* buscar_veiculo_por_placa_motorista(Motorista* motorista, const std::string& placa);
-
-
-        std::tuple<bool, std::string, std::string, std::string, std::string> buscar_dados_ufmg_por_cpf(const std::string& cpf_buscado);
-
-        void exibir_menu_inicial_nao_logado();
-        void exibir_menu_logado();
-        void exibir_menu_passageiro();
-        void exibir_menu_motorista();
-        void exibir_menu(); 
-
-        void processar_comando_logado(const std::string& comando_str);
-
+        // Fluxos de alto nível que delegam para os gerenciadores
         void fluxo_cadastro();
         void fluxo_login();
         void fluxo_logout();
-        
-        void fluxo_oferecer_carona();
-        void fluxo_solicitar_carona();
-        
-        void fluxo_status_caronas();
-        void fluxo_cadastrar_veiculo();
-        void fluxo_editar_perfil();
-        
-        void fluxo_passageiro_menu();
-        void fluxo_motorista_menu();
         void fluxo_editar_perfil_ou_veiculos();
-        void fluxo_tornar_motorista();
         
-        void fluxo_gerenciar_veiculos();
-        void fluxo_editar_veiculo(Motorista* motorista);
-        void fluxo_excluir_veiculo(Motorista* motorista);
-
-        void fluxo_gerenciar_rotinas();
-        void fluxo_adicionar_rotina(Motorista* motorista);
-        void fluxo_visualizar_rotinas(Motorista* motorista);
-        void fluxo_excluir_rotina(Motorista* motorista);
-
-        void gerar_caronas_de_rotinas();
-
-        void enviar_notificacao(Usuario* usuario, const std::string& mensagem, bool enviar_para_motorista = true);
-        bool pode_solicitar_carona(Usuario* passageiro, const Carona& carona);
-        void cancelar_outras_solicitacoes_passageiro(Usuario* passageiro, const Carona& carona_aceita);
-
-
-        int coletar_int_input(const std::string& prompt, int min_val, int max_val);
-        std::string coletar_string_input(const std::string& prompt);
-        std::vector<DiaDaSemana> coletar_dias_da_semana(const std::string& prompt);
-        Zona coletar_zona_input(const std::string& prompt);
-        UFMGPosicao coletar_ufmg_posicao_input(const std::string& prompt);
-
-        std::string zona_to_string(Zona z) const;
-        Zona string_to_zona(const std::string& s) const;
-        std::string ufmg_posicao_to_string(UFMGPosicao up) const;
-        UFMGPosicao string_to_ufmg_posicao(const std::string& s) const;
-
-
-        std::tm parse_datetime_string(const std::string& dt_str) const;
-        std::string get_current_datetime_string() const;
-        bool is_datetime_in_past(const std::string& dt_str) const;
-        void remover_caronas_passadas();
-
-        void fluxo_gerenciar_caronas();
-        void fluxo_solicitacoes_pendentes_motorista(); 
-        void fluxo_minhas_caronas(Motorista* motorista_logado);
-        void cancelar_carona_completa(Carona* carona_para_cancelar);
-
     public:
         Sistema();
         ~Sistema();
         void executar();
     };
-}
-#endif
+} // namespace ufmg_carona
+
+#endif // SISTEMA_HPP

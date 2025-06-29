@@ -47,6 +47,15 @@ namespace ufmg_carona {
             [](double acc, const Avaliacao* aval) { return acc + aval->get_nota(); });
         return soma / _avaliacoes_recebidas.size();
     }
+
+    std::string Usuario::get_medalha() const {
+        double media = get_media_avaliacoes();
+        if (media >= 4.5) return "Ouro";
+        if (media >= 3.0) return "Prata";
+        if (media > 0.0) return "Bronze";
+        return "Nenhuma (sem avaliacoes ou media 0)";
+    }
+
     void Usuario::adicionar_avaliacao_recebida(Avaliacao* a) { _avaliacoes_recebidas.push_back(a); }
 
     void Usuario::imprimir_perfil() const {
@@ -68,6 +77,7 @@ namespace ufmg_carona {
         }
 
         std::cout << "Avaliacao Media: " << std::fixed << std::setprecision(1) << get_media_avaliacoes() << " estrelas" << std::endl;
+        std::cout << "Medalha: " << get_medalha() << std::endl;
         std::cout << "---------------------------------" << std::endl;
     }
 

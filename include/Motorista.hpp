@@ -3,7 +3,6 @@
 
 #include "Usuario.hpp"
 #include "Veiculo.hpp"
-#include "Rotina.hpp"
 #include <vector>
 
 namespace ufmg_carona {
@@ -11,7 +10,6 @@ namespace ufmg_carona {
     private:
         std::vector<Veiculo*> _veiculos;
         std::string _cnh_numero;
-        std::vector<Rotina> _rotinas;
 
     public:
         Motorista(std::string nome, std::string cpf, std::string telefone, std::string data_nascimento,
@@ -34,10 +32,6 @@ namespace ufmg_carona {
 
 
         bool remover_veiculo(const std::string& placa);
-
-        void adicionar_rotina(const Rotina& rotina);
-        const std::vector<Rotina>& get_rotinas() const;
-        bool remover_rotina(int indice);
     };
 }
 

@@ -2,7 +2,6 @@
 #define USUARIO_HPP
 #include <string>
 #include <vector>
-#include "Rotina.hpp"
 #include "Notificacao.hpp"
 #include "Avaliacao.hpp"
 #include "Genero.hpp"
@@ -40,6 +39,7 @@ namespace ufmg_carona {
         virtual bool is_motorista() const;
         
         double get_media_avaliacoes() const;
+        std::string get_medalha() const;
         void adicionar_avaliacao_recebida(Avaliacao* avaliacao);
         virtual void imprimir_perfil() const;
 

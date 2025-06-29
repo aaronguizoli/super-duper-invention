@@ -37,6 +37,8 @@ namespace ufmg_carona {
 
     int Carona::gerar_proximo_id() { return _proximo_id++; }
 
+    void Carona::set_proximo_id(int id) { _proximo_id = id; } // <--- NOVA FUNÇÃO IMPLEMENTADA
+
     int Carona::get_id() const { return _id; }
     Usuario* Carona::get_motorista() const { return _motorista; }
     Veiculo* Carona::get_veiculo_usado() const { return _veiculo_usado; }

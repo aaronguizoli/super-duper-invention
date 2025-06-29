@@ -2,7 +2,6 @@
 #include <iostream>
 #include <algorithm>
 #include <map>
-#include "Rotina.hpp"
 
 namespace ufmg_carona {
     Motorista::Motorista(std::string nome, std::string cpf, std::string telefone, std::string data_nascimento,
@@ -10,8 +9,7 @@ namespace ufmg_carona {
                          std::string detalhe_vinculo, std::string cnh_numero)
         : Usuario(nome, cpf, telefone, data_nascimento, email, senha, genero, vinculo_tipo, detalhe_vinculo),
           _veiculos(),
-          _cnh_numero(cnh_numero),
-          _rotinas() {}
+          _cnh_numero(cnh_numero) {}
 
     Motorista::~Motorista() {
         for (Veiculo* v : _veiculos) {
@@ -30,7 +28,6 @@ namespace ufmg_carona {
                 }
             }
             _veiculos.push_back(veiculo);
-            std::cout << "Veiculo " << veiculo->get_placa() << " adicionado para o motorista " << get_nome() << "." << std::endl;
         }
     }
 
@@ -70,22 +67,6 @@ namespace ufmg_carona {
         return false;
     }
 
-    bool Motorista::remover_rotina(int indice) {
-        if (indice >= 0 && static_cast<size_t>(indice) < _rotinas.size()) {
-            _rotinas.erase(_rotinas.begin() + indice);
-            return true;
-        }
-        return false;
-    }
-
-    void Motorista::adicionar_rotina(const Rotina& rotina) {
-        _rotinas.push_back(rotina);
-    }
-
-    const std::vector<Rotina>& Motorista::get_rotinas() const {
-        return _rotinas;
-    }
-
     void Motorista::imprimir_perfil() const {
         Usuario::imprimir_perfil();
         std::cout << "--- Informacoes de Motorista ---" << std::endl;
@@ -100,46 +81,6 @@ namespace ufmg_carona {
                 if (_veiculos[i]) {
                     _veiculos[i]->exibir_info();
                 }
-            }
-        }
-        
-        if (_rotinas.empty()) {
-            std::cout << "Nenhuma rotina de carona cadastrada." << std::endl;
-        } else {
-            std::cout << "Rotinas de Carona Cadastradas (" << _rotinas.size() << "):" << std::endl;
-            std::map<DiaDaSemana, std::string> dias_da_semana = {
-                {DiaDaSemana::DOMINGO, "Domingo"}, {DiaDaSemana::SEGUNDA, "Segunda"},
-                {DiaDaSemana::TERCA, "Terca"}, {DiaDaSemana::QUARTA, "Quarta"},
-                {DiaDaSemana::QUINTA, "Quinta"}, {DiaDaSemana::SEXTA, "Sexta"},
-                {DiaDaSemana::SABADO, "Sabado"}
-            };
-            for (size_t i = 0; i < _rotinas.size(); ++i) {
-                std::cout << "  [" << (i + 1) << "] ";
-                const Rotina& rotina = _rotinas[i];
-                std::cout << "Dias: ";
-                const std::vector<DiaDaSemana>& dias_da_rotina = rotina.get_dias();
-                if (dias_da_rotina.empty()) {
-                    std::cout << "Nenhum";
-                } else if (dias_da_rotina.size() == 7) {
-                    std::cout << "Todos";
-                } else {
-                    for (size_t j = 0; j < dias_da_rotina.size(); ++j) {
-                        std::cout << dias_da_semana[dias_da_rotina[j]];
-                        if (j < dias_da_rotina.size() - 1) {
-                            std::cout << ", ";
-                        }
-                    }
-                }
-                std::cout << " | Hora: " << rotina.get_horario_saida()
-                          << " | " << rotina.get_local_saida_padrao() << " -> "
-                          << rotina.get_destino_final();
-                if (!rotina.get_placa_veiculo_usado().empty()) {
-                    std::cout << " (Veiculo: " << rotina.get_placa_veiculo_usado() << ")";
-                }
-                if (rotina.get_apenas_mulheres()) {
-                    std::cout << " (Apenas Mulheres)";
-                }
-                std::cout << std::endl;
             }
         }
         std::cout << "---------------------------------" << std::endl;

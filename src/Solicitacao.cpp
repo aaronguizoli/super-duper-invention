@@ -11,7 +11,9 @@ namespace ufmg_carona {
           _local_embarque_passageiro(local_embarque_p),
           _local_desembarque_passageiro(local_desembarque_p),
           _local_embarque_motorista_proposto(""),
-          _local_desembarque_motorista_proposto("") {}
+          _local_desembarque_motorista_proposto(""),
+          _passageiro_avaliou_motorista(false),
+          _motorista_avaliou_passageiro(false) {}
 
     void Solicitacao::aceitar() { _status = StatusSolicitacao::ACEITA; }
     void Solicitacao::recusar() { _status = StatusSolicitacao::RECUSADA; }
@@ -80,5 +82,21 @@ namespace ufmg_carona {
              std::cout << "  Sua proposta: Embarque em '" << _local_embarque_motorista_proposto
                        << "', Desembarque em '" << _local_desembarque_motorista_proposto << "'" << std::endl;
         }
+    }
+
+    bool Solicitacao::get_passageiro_avaliou_motorista() const {
+        return _passageiro_avaliou_motorista;
+    }
+
+    void Solicitacao::set_passageiro_avaliou_motorista(bool avaliou) {
+        _passageiro_avaliou_motorista = avaliou;
+    }
+
+    bool Solicitacao::get_motorista_avaliou_passageiro() const {
+        return _motorista_avaliou_passageiro;
+    }
+
+    void Solicitacao::set_motorista_avaliou_passageiro(bool avaliou) {
+        _motorista_avaliou_passageiro = avaliou;
     }
 }

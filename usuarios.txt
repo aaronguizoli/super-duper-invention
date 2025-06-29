@@ -1,5 +1,2 @@
-11122233344;Ana Souza;31987654321;01/01/2000;aninhagamer123@ufmg.com.br;senha123;1;aluno;Ciencia da Computacao;1;1345667
-22233344455;Bruno Gomes;31998765432;15/05/1985;bruno@ufmg.br;senha123;0;funcionario;0;1;123456789
-33344455566;Carlos Silva;31976543210;10/12/1995;carlos@ufmg.br;outrasenha;0;aluno;Engenharia Eletrica;1;987654321
-44455566677;Daniela Costa;555555;20/07/1978;teste@;123;1;funcionario;0;1;12222333
-55566677788;Eduardo Pereira;31971326089;05/03/2001;pingolinha@gmail.com;senha123;0;aluno;Medicina;1;1234567890
+12345678901;Maria Silva;987654321;01/01/2000;maria@email.com;senha123;1;aluno;Engenharia;1;211111
+10987654321;Joao Santos;123456789;05/05/1995;joao@email.com;senhaabc;0;funcionario;TI;1;98765432100

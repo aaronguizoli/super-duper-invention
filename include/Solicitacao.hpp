@@ -23,6 +23,8 @@ namespace ufmg_carona {
         std::string _local_desembarque_passageiro;
         std::string _local_embarque_motorista_proposto;
         std::string _local_desembarque_motorista_proposto;
+        bool _passageiro_avaliou_motorista;
+        bool _motorista_avaliou_passageiro;
 
 
     public:
@@ -50,6 +52,11 @@ namespace ufmg_carona {
 
         void exibir_info() const;
         void exibir_para_motorista() const;
+
+        bool get_passageiro_avaliou_motorista() const;
+        void set_passageiro_avaliou_motorista(bool avaliou);
+        bool get_motorista_avaliou_passageiro() const;
+        void set_motorista_avaliou_passageiro(bool avaliou);
     };
 }
 #endif
