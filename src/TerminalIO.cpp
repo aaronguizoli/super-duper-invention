@@ -1,11 +1,11 @@
 #include "TerminalIO.hpp"
-#include "Zona.hpp" // Para os enums Zona e UFMGPosicao
-#include "Genero.hpp" // Para o enum Genero
-#include "Utilitarios.hpp" // Para utilitários de Zona e UFMGPosicao to string (opcional)
+#include "Zona.hpp"
+#include "Genero.hpp"
+#include "Utilitarios.hpp"
 
 #include <iostream>
-#include <limits> // Para numeric_limits
-#include <map>    // Para mapeamentos de Zona/UFMGPosicao, se não estiverem em Utilitarios
+#include <limits>
+#include <map>
 #include <string>
 
 namespace ufmg_carona {
@@ -64,7 +64,7 @@ namespace ufmg_carona {
 
     Zona TerminalIO::coletarZonaInput(const std::string& prompt) const {
         std::cout << prompt << std::endl;
-        Utilitarios util; // Instancia de Utilitarios para usar as funcoes de conversao
+        Utilitarios util;
         for (const auto& pair : util.getIntParaZona()) {
             std::cout << "(" << pair.first << ") " << util.zonaToString(pair.second) << std::endl;
         }
@@ -111,4 +111,4 @@ namespace ufmg_carona {
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
 
-} // namespace ufmg_carona
+}

@@ -1,10 +1,10 @@
 #include "Utilitarios.hpp"
-#include "Zona.hpp" // Para os enums Zona e UFMGPosicao
+#include "Zona.hpp"
 
 #include <iostream>
 #include <sstream>
-#include <chrono>   // Para std::chrono::system_clock
-#include <iomanip>  // Para std::put_time
+#include <chrono>
+#include <iomanip>
 
 namespace ufmg_carona {
 
@@ -15,7 +15,7 @@ namespace ufmg_carona {
             {Zona::NOROESTE, "Noroeste"},
             {Zona::LESTE, "Leste"},
             {Zona::OESTE, "Oeste"},
-            {Zona::NORTE, "Norte"}, // Norte não estava no mapeamento original, adicionei
+            {Zona::NORTE, "Norte"},
             {Zona::VENDA_NOVA, "Venda Nova"},
             {Zona::BARREIRO, "Barreiro"}
         };
@@ -83,7 +83,7 @@ namespace ufmg_carona {
                 return pair.first;
             }
         }
-        return Zona::PAMPULHA; // Retorno padrão
+        return Zona::PAMPULHA;
     }
 
     std::string Utilitarios::ufmgPosicaoToString(UFMGPosicao up) const {
@@ -100,7 +100,7 @@ namespace ufmg_carona {
                 return pair.first;
             }
         }
-        return UFMGPosicao::ORIGEM; // Retorno padrão
+        return UFMGPosicao::ORIGEM;
     }
 
     const std::map<int, Zona>& Utilitarios::getIntParaZona() const {
@@ -119,4 +119,4 @@ namespace ufmg_carona {
         return _ufmg_posicao_para_string;
     }
 
-} // namespace ufmg_carona
+}

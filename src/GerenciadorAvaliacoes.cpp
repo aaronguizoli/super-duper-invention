@@ -8,12 +8,12 @@
 #include "Avaliacao.hpp"
 #include "Carona.hpp"
 #include "Solicitacao.hpp"
-#include "Excecoes.hpp" // Para AppExcecao, se necessário
+#include "Excecoes.hpp"
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <algorithm> // Para std::find
+#include <algorithm>
 
 namespace ufmg_carona {
 
@@ -21,7 +21,6 @@ namespace ufmg_carona {
                                                  GerenciadorCaronas* ger_caronas, GerenciadorSolicitacoes* ger_solicitacoes)
         : _terminal_io(terminal_io), _ger_usuarios(ger_usuarios), _ger_caronas(ger_caronas),
           _ger_solicitacoes(ger_solicitacoes) {
-        // As avaliações serão carregadas pelo Sistema no início, então não carregamos aqui
     }
 
     GerenciadorAvaliacoes::~GerenciadorAvaliacoes() {
@@ -31,7 +30,6 @@ namespace ufmg_carona {
         _avaliacoes_globais.clear();
     }
 
-    // <--- ALTERADO: Métodos carregarDados e salvarDados são agora públicos
     void GerenciadorAvaliacoes::carregarDados() {
         std::ifstream arquivo_avaliacoes("avaliacoes.txt");
         if (!arquivo_avaliacoes.is_open()) {
@@ -73,7 +71,6 @@ namespace ufmg_carona {
         arquivo_avaliacoes.close();
     }
 
-    // <--- ALTERADO: Métodos carregarDados e salvarDados são agora públicos
     void GerenciadorAvaliacoes::salvarDados() {
         std::ofstream arquivo_avaliacoes("avaliacoes.txt", std::ios::trunc);
         if (!arquivo_avaliacoes.is_open()) {
@@ -106,7 +103,7 @@ namespace ufmg_carona {
                 if (comando == 1) {
                     avaliarCaronaPassageiro(usuario_logado);
                 } else if (comando == 2) {
-                    // Downcast para Motorista é seguro aqui pois a função verificar_motorista é chamada antes.
+                    
                     Motorista* motorista_logado = dynamic_cast<Motorista*>(usuario_logado);
                     if (motorista_logado) {
                         avaliarPassageirosMotorista(motorista_logado);
@@ -128,7 +125,7 @@ namespace ufmg_carona {
         _terminal_io->exibirMensagem("\n--- Avaliar Caronas (Como Passageiro) ---");
         std::vector<Solicitacao*> solicitacoes_para_avaliar;
 
-        // O GerenciadorAvaliacoes agora precisa acessar as _solicitacoes globais para verificar se há solicitações para avaliar
+        
         const std::vector<Solicitacao*>& todas_solicitacoes = _ger_solicitacoes->getSolicitacoes();
 
         for (Solicitacao* s : todas_solicitacoes) {
@@ -174,9 +171,9 @@ namespace ufmg_carona {
         motorista_alvo->adicionar_avaliacao_recebida(nova_avaliacao);
         solicitacao_escolhida->set_passageiro_avaliou_motorista(true);
 
-        salvarDados(); // Salva as avaliações
-        _ger_solicitacoes->salvarDadosSolicitacoesPublico(); // Salva o status da solicitação
-        _ger_usuarios->salvarDadosUsuariosPublico(); // Salva o novo rating do motorista
+        salvarDados();
+        _ger_solicitacoes->salvarDadosSolicitacoesPublico();
+        _ger_usuarios->salvarDadosUsuariosPublico();
         _terminal_io->exibirMensagem("Avaliacao registrada com sucesso!");
     }
 
@@ -188,7 +185,7 @@ namespace ufmg_carona {
         _terminal_io->exibirMensagem("\n--- Avaliar Passageiros (Como Motorista) ---");
         std::vector<Solicitacao*> solicitacoes_para_avaliar;
 
-        // O GerenciadorAvaliacoes agora precisa acessar as _solicitacoes globais para verificar se há solicitações para avaliar
+        
         const std::vector<Solicitacao*>& todas_solicitacoes = _ger_solicitacoes->getSolicitacoes();
 
         for (Solicitacao* s : todas_solicitacoes) {
@@ -233,15 +230,15 @@ namespace ufmg_carona {
         passageiro_alvo->adicionar_avaliacao_recebida(nova_avaliacao);
         solicitacao_escolhida->set_motorista_avaliou_passageiro(true);
 
-        salvarDados(); // Salva as avaliações
-        _ger_solicitacoes->salvarDadosSolicitacoesPublico(); // Salva o status da solicitação
-        _ger_usuarios->salvarDadosUsuariosPublico(); // Salva o novo rating do passageiro
+        salvarDados();
+        _ger_solicitacoes->salvarDadosSolicitacoesPublico();
+        _ger_usuarios->salvarDadosUsuariosPublico();
         _terminal_io->exibirMensagem("Avaliacao registrada com sucesso!");
     }
 
     void GerenciadorAvaliacoes::exibirMinhasAvaliacoesRecebidas(Usuario* usuario) const {
         _terminal_io->exibirMensagem("\n--- Minhas Avaliacoes Recebidas ---");
-        usuario->imprimir_perfil(); // Isso está em Usuario, então permanece lá.
+        usuario->imprimir_perfil();
         
         bool encontrou_avaliacoes = false;
         for (const auto& aval : _avaliacoes_globais) {
@@ -279,4 +276,4 @@ namespace ufmg_carona {
         }
     }
 
-} // namespace ufmg_carona
+}

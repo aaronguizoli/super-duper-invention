@@ -5,7 +5,6 @@
 #include <string>
 
 namespace ufmg_carona {
-    // Forward declarations para evitar inclusões circulares e dependências desnecessárias
     class TerminalIO;
     class GerenciadorUsuarios;
     class GerenciadorCaronas;
@@ -14,17 +13,17 @@ namespace ufmg_carona {
     class Motorista;
     class Avaliacao;
     class Carona;
-    class Solicitacao; // Adicionado para poder gerenciar as flags de avaliação em Solicitacao
+    class Solicitacao;
 
     class GerenciadorAvaliacoes {
     private:
         TerminalIO* _terminal_io;
         GerenciadorUsuarios* _ger_usuarios;
         GerenciadorCaronas* _ger_caronas;
-        GerenciadorSolicitacoes* _ger_solicitacoes; // Adicionado para acesso às solicitações
-        std::vector<Avaliacao*> _avaliacoes_globais; // Avaliações podem ser armazenadas globalmente aqui
+        GerenciadorSolicitacoes* _ger_solicitacoes;
+        std::vector<Avaliacao*> _avaliacoes_globais;
 
-    public: // <--- ALTERADO: Métodos tornados públicos para acesso pelo Sistema
+    public:
         void salvarDados();
         void carregarDados();
 
@@ -38,9 +37,7 @@ namespace ufmg_carona {
         void exibirMinhasAvaliacoesRecebidas(Usuario* usuario) const;
         void exibirAvaliacoesQueFiz(Usuario* usuario) const;
 
-        // Métodos auxiliares para o Sistema
         void fluxo_avaliacoes(Usuario* usuario_logado);
     };
-} // namespace ufmg_carona
-
-#endif // GERENCIADOR_AVALIACOES_HPP
+}
+#endif

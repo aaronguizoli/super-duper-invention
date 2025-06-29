@@ -3,19 +3,18 @@
 #include "Usuario.hpp"
 #include "Motorista.hpp"
 #include "Genero.hpp"
-#include "Excecoes.hpp" // Para AutenticacaoFalhouException, AppExcecao
+#include "Excecoes.hpp"
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <limits> // Para numeric_limits
-#include <algorithm> // Para std::find
+#include <limits>
+#include <algorithm>
 
 namespace ufmg_carona {
 
     GerenciadorUsuarios::GerenciadorUsuarios(TerminalIO* terminal_io)
         : _terminal_io(terminal_io) {
-        // Os usuários serão carregados pelo Sistema no início
     }
 
     GerenciadorUsuarios::~GerenciadorUsuarios() {
@@ -26,7 +25,6 @@ namespace ufmg_carona {
     }
 
     void GerenciadorUsuarios::carregarDados() {
-        // Este método é o interno, que pode ser chamado pelo método público.
     }
 
     void GerenciadorUsuarios::carregarDadosUsuariosPublico() {
@@ -112,7 +110,6 @@ namespace ufmg_carona {
     }
 
     void GerenciadorUsuarios::salvarDados() {
-        // Este método é o interno, que pode ser chamado pelo método público.
     }
 
     void GerenciadorUsuarios::salvarDadosUsuariosPublico() {
@@ -150,7 +147,6 @@ namespace ufmg_carona {
         arquivo_usuarios.close();
     }
 
-    // <--- NOVA ASSINATURA: Recebe dados UFMG já processados
     void GerenciadorUsuarios::cadastrarUsuario(const std::string& cpf_digitado, const std::string& nome_ufmg, const std::string& data_nascimento_ufmg,
                                                const std::string& vinculo_ufmg, const std::string& detalhe_ufmg) {
         std::string telefone_digitado, email_digitado, senha_digitada;
@@ -159,11 +155,9 @@ namespace ufmg_carona {
             throw AppExcecao("CPF ja cadastrado no sistema. Por favor, faca login.");
         }
 
-        // A verificação e obtenção de dados da UFMG foi movida para Sistema::fluxo_cadastro
-        // O GerenciadorUsuarios agora apenas cria o usuário com os dados fornecidos.
         
-        _terminal_io->exibirMensagem("--- Cadastro ---"); // Mensagem de contexto
-        _terminal_io->exibirMensagem("Dados UFMG confirmados para " + nome_ufmg + "."); // Confirmação visual
+        _terminal_io->exibirMensagem("--- Cadastro ---");
+        _terminal_io->exibirMensagem("Dados UFMG confirmados para " + nome_ufmg + ".");
 
         telefone_digitado = _terminal_io->coletarStringInput("Telefone (apenas numeros): ");
         email_digitado = _terminal_io->coletarStringInput("Email: ");
@@ -177,10 +171,6 @@ namespace ufmg_carona {
         salvarDadosUsuariosPublico();
         _terminal_io->exibirMensagem("Cadastro realizado com sucesso!");
     }
-
-
-    // <--- REMOVIDO: fluxo_cadastro foi movido para Sistema.cpp
-    // void GerenciadorUsuarios::fluxo_cadastro(std::tuple<bool, std::string, std::string, std::string, std::string> (*buscar_dados_ufmg_func)(const std::string&)) { /* ... */ }
 
     Usuario* GerenciadorUsuarios::fluxo_login() {
         std::string cpf, senha;
@@ -217,7 +207,7 @@ namespace ufmg_carona {
         int escolha;
         do {
             _terminal_io->exibirMensagem("\n--- Editar Perfil ---");
-            usuario->imprimir_perfil(); // Método de Usuario
+            usuario->imprimir_perfil();
             _terminal_io->exibirMensagem("Escolha o campo para editar:");
             _terminal_io->exibirMensagem("(1) Email | (2) Telefone | (3) Senha | (4) Genero | (0) Voltar");
             
@@ -225,22 +215,22 @@ namespace ufmg_carona {
             std::string novo_valor;
 
             switch (escolha) {
-                case 1: 
+                case 1:
                     novo_valor = _terminal_io->coletarStringInput("Novo Email: ");
                     usuario->set_email(novo_valor);
                     _terminal_io->exibirMensagem("Email atualizado!");
                     break;
-                case 2: 
+                case 2:
                     novo_valor = _terminal_io->coletarStringInput("Novo Telefone (apenas numeros): ");
                     usuario->set_telefone(novo_valor);
                     _terminal_io->exibirMensagem("Telefone atualizado!");
                     break;
-                case 3: 
+                case 3:
                     novo_valor = _terminal_io->coletarStringInput("Nova Senha: ");
                     usuario->set_senha(novo_valor);
                     _terminal_io->exibirMensagem("Senha atualizada!");
                     break;
-                case 4: { 
+                case 4: {
                     Genero gen_novo = _terminal_io->coletarGeneroInput("Genero (0:Masc, 1:Fem, 2:Outro, 3:Nao Informar): ");
                     usuario->set_genero(gen_novo);
                     _terminal_io->exibirMensagem("Genero atualizado!");
@@ -254,7 +244,7 @@ namespace ufmg_carona {
                     break;
             }
             if (escolha != 0) {
-                salvarDadosUsuariosPublico(); // Salva as alterações
+                salvarDadosUsuariosPublico();
             }
         } while (escolha != 0);
     }
@@ -269,7 +259,6 @@ namespace ufmg_carona {
         _terminal_io->exibirMensagem("\n--- Cadastro para Motorista ---");
         cnh_numero_digitado = _terminal_io->coletarStringInput("Numero da CNH: ");
 
-        // Encontra o usuário na lista e o substitui por um Motorista
         for (size_t i = 0; i < _usuarios.size(); ++i) {
             if (_usuarios[i] == usuario) {
                 std::string nome = usuario->get_nome();
@@ -285,9 +274,9 @@ namespace ufmg_carona {
                 Motorista* novo_motorista = new Motorista(nome, cpf, telefone, data_nascimento, email, senha, genero,
                                                           vinculo_tipo, detalhe_vinculo, cnh_numero_digitado);
                 
-                delete usuario; // Libera a memória do objeto Usuario antigo
-                _usuarios[i] = novo_motorista; // Substitui na lista
-                usuario = novo_motorista; // Atualiza o ponteiro do usuario logado
+                delete usuario;
+                _usuarios[i] = novo_motorista;
+                usuario = novo_motorista;
 
                 salvarDadosUsuariosPublico();
                 _terminal_io->exibirMensagem("Parabens! Voce agora e um motorista cadastrado.");
@@ -316,4 +305,4 @@ namespace ufmg_carona {
         }
     }
 
-} // namespace ufmg_carona
+}

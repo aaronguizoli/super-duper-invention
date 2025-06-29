@@ -36,7 +36,7 @@ namespace ufmg_carona {
     public:
         Carona(std::string origem_nome, std::string destino_nome, Zona origem_zona, Zona destino_zona, UFMGPosicao ufmg_posicao, std::string data, Usuario* motorista, Veiculo* veiculo_usado, bool apenas_mulheres, TipoCarona tipo);
         static int gerar_proximo_id();
-        static void set_proximo_id(int id); // <--- NOVA LINHA ADICIONADA
+        static void set_proximo_id(int id);
 
         int get_id() const;
         Usuario* get_motorista() const;

@@ -19,14 +19,10 @@ namespace ufmg_carona {
     }
 
     GerenciadorVeiculos::~GerenciadorVeiculos() {
-        // Os objetos Veiculo são de responsabilidade do Motorista,
-        // então não há necessidade de liberá-los aqui.
     }
 
     void GerenciadorVeiculos::carregarDados(GerenciadorUsuarios* ger_usuarios) {
-        // Este método é o interno, que pode ser chamado pelo método público.
-        // O parâmetro 'ger_usuarios' é usado pelo método público, mas não diretamente aqui.
-        (void)ger_usuarios; // <--- ADICIONADO: Suprime o warning de parâmetro não utilizado
+        (void)ger_usuarios;
     }
 
     void GerenciadorVeiculos::carregarDadosVeiculosPublico(GerenciadorUsuarios* ger_usuarios) {
@@ -76,9 +72,7 @@ namespace ufmg_carona {
     }
 
     void GerenciadorVeiculos::salvarDados(GerenciadorUsuarios* ger_usuarios) {
-        // Este método é o interno, que pode ser chamado pelo método público.
-        // O parâmetro 'ger_usuarios' é usado pelo método público, mas não diretamente aqui.
-        (void)ger_usuarios; // <--- ADICIONADO: Suprime o warning de parâmetro não utilizado
+        (void)ger_usuarios;
     }
 
     void GerenciadorVeiculos::salvarDadosVeiculosPublico(GerenciadorUsuarios* ger_usuarios) {
@@ -280,4 +274,4 @@ namespace ufmg_carona {
         return nullptr;
     }
 
-} // namespace ufmg_carona
+}

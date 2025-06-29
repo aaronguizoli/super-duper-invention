@@ -1,2 +1,0 @@
-12345678901;Maria Silva;987654321;01/01/2000;maria@email.com;senha123;1;aluno;Engenharia;1;211111
-10987654321;Joao Santos;123456789;05/05/1995;joao@email.com;senhaabc;0;funcionario;TI;1;98765432100

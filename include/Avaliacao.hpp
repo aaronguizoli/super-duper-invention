@@ -2,7 +2,7 @@
 #define AVALIACAO_HPP
 #include <string>
 namespace ufmg_carona {
-    class Usuario; 
+    class Usuario;
     class Carona;
     class Avaliacao {
     private:

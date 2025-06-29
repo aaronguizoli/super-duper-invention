@@ -2,42 +2,40 @@
 #include "TerminalIO.hpp"
 #include "GerenciadorUsuarios.hpp"
 #include "GerenciadorVeiculos.hpp"
-#include "GerenciadorSolicitacoes.hpp" // <--- ADICIONADO: para acessar _ger_solicitacoes
+#include "GerenciadorSolicitacoes.hpp"
 #include "Usuario.hpp"
 #include "Motorista.hpp"
 #include "Veiculo.hpp"
 #include "CaronaFactory.hpp"
-#include "Excecoes.hpp" // Para AppExcecao
-#include "Zona.hpp" // Para enums Zona e UFMGPosicao
-#include "Utilitarios.hpp" // Para funções de data/hora e conversões de Zona
-#include "Solicitacao.hpp" // <--- ADICIONADO: Para resolver "incomplete type" de Solicitacao
+#include "Excecoes.hpp"
+#include "Zona.hpp"
+#include "Utilitarios.hpp"
+#include "Solicitacao.hpp"
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <limits> // Para numeric_limits
-#include <algorithm> // Para std::find
-#include <map> // Para mapeamentos internos
-#include <iomanip> // Para put_time
+#include <limits>
+#include <algorithm>
+#include <map>
+#include <iomanip>
 
 namespace ufmg_carona {
 
     int GerenciadorCaronas::_proximo_id_carona = 1;
 
-    // <--- CONSTRUTOR ATUALIZADO
     GerenciadorCaronas::GerenciadorCaronas(TerminalIO* terminal_io, GerenciadorUsuarios* ger_usuarios, GerenciadorVeiculos* ger_veiculos, GerenciadorSolicitacoes* ger_solicitacoes)
-        : _terminal_io(terminal_io), _ger_usuarios(ger_usuarios), _ger_veiculos(ger_veiculos), _ger_solicitacoes(ger_solicitacoes) { // <--- Inicializando _ger_solicitacoes
-        // Carregamento de dados será orquestrado pelo Sistema
+        : _terminal_io(terminal_io), _ger_usuarios(ger_usuarios), _ger_veiculos(ger_veiculos), _ger_solicitacoes(ger_solicitacoes) {
     }
 
     GerenciadorCaronas::~GerenciadorCaronas() {
-        // Caronas são objetos no vetor e serão desalocadas automaticamente.
-        // Solicitacoes e Avaliacoes que fazem referência a elas são gerenciadas por outras classes.
+    }
+
+    void GerenciadorCaronas::setGerenciadorSolicitacoes(GerenciadorSolicitacoes* ger_solicitacoes) {
+        _ger_solicitacoes = ger_solicitacoes;
     }
 
     void GerenciadorCaronas::carregarDados() {
-        // Este método é o interno, que pode ser chamado pelo método público.
-        // O método público será o que Sistema chamará diretamente.
     }
 
     void GerenciadorCaronas::carregarDadosCaronasPublico(GerenciadorUsuarios* ger_usuarios, GerenciadorVeiculos* ger_veiculos) {
@@ -102,7 +100,7 @@ namespace ufmg_carona {
                     continue;
                 }
 
-                Utilitarios util; // Instancia de Utilitarios para usar as funcoes de conversao
+                Utilitarios util;
                 Zona origem_zona_lida = util.stringToZona(origem_zona_str);
                 Zona destino_zona_lida = util.stringToZona(destino_zona_str);
                 UFMGPosicao ufmg_posicao_lida = util.stringToUfmgPosicao(ufmg_posicao_str);
@@ -121,7 +119,7 @@ namespace ufmg_carona {
                     nova_carona_carregada.set_status(StatusCarona::AGUARDANDO);
                 }
 
-                // Ajusta _proximo_id_carona para ser maior que qualquer ID carregado
+                
                 if (nova_carona_carregada.get_id() >= _proximo_id_carona) {
                     _proximo_id_carona = nova_carona_carregada.get_id() + 1;
                 }
@@ -133,12 +131,10 @@ namespace ufmg_carona {
             }
         }
         arquivo_caronas.close();
-        Carona::set_proximo_id(_proximo_id_carona); // Atualiza o ID estático na classe Carona
+        Carona::set_proximo_id(_proximo_id_carona);
     }
 
     void GerenciadorCaronas::salvarDados() {
-        // Este método é o interno, que pode ser chamado pelo método público.
-        // O método público será o que Sistema chamará diretamente.
     }
 
     void GerenciadorCaronas::salvarDadosCaronasPublico() {
@@ -217,7 +213,7 @@ namespace ufmg_carona {
             origem_zona = Zona::PAMPULHA;
             destino_zona = _terminal_io->coletarZonaInput("Para qual zona administrativa voce ira?");
             destino_nome_str = util.zonaToString(destino_zona);
-        } else { 
+        } else {
             destino_nome_str = "UFMG Pampulha";
             destino_zona = Zona::PAMPULHA;
             origem_zona = _terminal_io->coletarZonaInput("De qual zona administrativa voce saira?");
@@ -272,8 +268,6 @@ namespace ufmg_carona {
                 ids_str += std::to_string(id) + " ";
             }
             _terminal_io->exibirMensagem(ids_str);
-            // Notificações de solicitações canceladas são responsabilidade do GerenciadorSolicitacoes
-            // ao carregar dados ou no momento da remoção de caronas.
         }
     }
     
@@ -291,10 +285,13 @@ namespace ufmg_carona {
 
             try {
                 if (comando == 1) {
-                    // Chamar o fluxo de solicitacoes pendentes do GerenciadorSolicitacoes
-                    // Passamos _ger_usuarios e _ger_caronas como dependências, se necessário para a lógica interna
-                    // Mas o método em Solicitacoes precisa apenas do motorista logado e TerminalIO
-                    _ger_solicitacoes->solicitacoesPendentesMotorista(motorista_logado); // <--- Correção: usa _ger_solicitacoes
+                    
+                    
+                    if (_ger_solicitacoes) {
+                        _ger_solicitacoes->solicitacoesPendentesMotorista(motorista_logado);
+                    } else {
+                        _terminal_io->exibirErro("Erro interno: Gerenciador de solicitacoes nao inicializado.");
+                    }
                 } else if (comando == 2) {
                     fluxo_minhas_caronas(motorista_logado);
                 }
@@ -306,7 +303,7 @@ namespace ufmg_carona {
 
     void GerenciadorCaronas::fluxo_minhas_caronas(Motorista* motorista_logado) {
         _terminal_io->exibirMensagem("\n--- Minhas Caronas Ofertadas ---");
-        removerCaronasPassadas(); // Garante que as caronas exibidas estão atualizadas
+        removerCaronasPassadas();
 
         std::vector<Carona*> caronas_do_motorista;
         for (auto& carona : _caronas) {
@@ -339,13 +336,17 @@ namespace ufmg_carona {
                 _terminal_io->exibirMensagem(" | Status: " + status_str);
 
                 std::vector<Solicitacao*> passageiros_confirmados_solicitacoes;
-                // Acessa as solicitações através do GerenciadorSolicitacoes
-                const std::vector<Solicitacao*>& todas_solicitacoes = _ger_solicitacoes->getSolicitacoes(); // <--- Correção: usa _ger_solicitacoes
-                for (const auto& solicitacao : todas_solicitacoes) {
-                    if (solicitacao->get_carona() && solicitacao->get_carona() == carona && solicitacao->get_status() == StatusSolicitacao::ACEITA) {
-                        passageiros_confirmados_solicitacoes.push_back(solicitacao);
+                if (_ger_solicitacoes) {
+                    const std::vector<Solicitacao*>& todas_solicitacoes = _ger_solicitacoes->getSolicitacoes();
+                    for (const auto& solicitacao : todas_solicitacoes) {
+                        if (solicitacao->get_carona() && solicitacao->get_carona() == carona && solicitacao->get_status() == StatusSolicitacao::ACEITA) {
+                            passageiros_confirmados_solicitacoes.push_back(solicitacao);
+                        }
                     }
+                } else {
+                    _terminal_io->exibirErro("Erro interno: Gerenciador de solicitacoes nao inicializado para listar passageiros.");
                 }
+
                 if (!passageiros_confirmados_solicitacoes.empty()) {
                     _terminal_io->exibirMensagem("  Passageiros confirmados (" + std::to_string(passageiros_confirmados_solicitacoes.size()) + "):");
                     for (Solicitacao* sol : passageiros_confirmados_solicitacoes) {
@@ -402,17 +403,18 @@ namespace ufmg_carona {
 
         carona_para_finalizar->set_status(StatusCarona::FINALIZADA);
 
-        // Notificar passageiros através do GerenciadorSolicitacoes
-        // Isso pode ser feito iterando as solicitacoes e chamando um método de notificação
-        // no GerenciadorSolicitacoes ou diretamente no GerenciadorUsuarios
-        const std::vector<Solicitacao*>& todas_solicitacoes = _ger_solicitacoes->getSolicitacoes(); // <--- Correção: usa _ger_solicitacoes
-        for (Solicitacao* s : todas_solicitacoes) {
-            if (s->get_carona() && s->get_carona() == carona_para_finalizar && s->get_status() == StatusSolicitacao::ACEITA) {
-                _ger_usuarios->enviarNotificacao(s->get_passageiro(), "A carona ID " + std::to_string(carona_para_finalizar->get_id()) +
-                                 " de " + (carona_para_finalizar->get_motorista() ? carona_para_finalizar->get_motorista()->get_nome() : "Motorista Desconhecido") + " foi FINALIZADA. Voce ja pode avalia-la!");
+        if (_ger_solicitacoes) {
+            const std::vector<Solicitacao*>& todas_solicitacoes = _ger_solicitacoes->getSolicitacoes();
+            for (Solicitacao* s : todas_solicitacoes) {
+                if (s->get_carona() && s->get_carona() == carona_para_finalizar && s->get_status() == StatusSolicitacao::ACEITA) {
+                    _ger_usuarios->enviarNotificacao(s->get_passageiro(), "A carona ID " + std::to_string(carona_para_finalizar->get_id()) +
+                                     " de " + (carona_para_finalizar->get_motorista() ? carona_para_finalizar->get_motorista()->get_nome() : "Motorista Desconhecido") + " foi FINALIZADA. Voce ja pode avalia-la!");
+                }
             }
+            _ger_solicitacoes->salvarDadosSolicitacoesPublico();
+        } else {
+            _terminal_io->exibirErro("Erro interno: Gerenciador de solicitacoes nao inicializado para finalizar carona.");
         }
-        _ger_solicitacoes->salvarDadosSolicitacoesPublico(); // Atualiza o status de avaliação se necessário
         salvarDadosCaronasPublico();
     }
 
@@ -421,23 +423,25 @@ namespace ufmg_carona {
 
         carona_para_cancelar->set_status(StatusCarona::CANCELADA);
 
-        // Notificar passageiros através do GerenciadorSolicitacoes
-        const std::vector<Solicitacao*>& todas_solicitacoes = _ger_solicitacoes->getSolicitacoes(); // <--- Correção: usa _ger_solicitacoes
-        for (Solicitacao* s : todas_solicitacoes) {
-            if (s->get_carona() && s->get_carona() == carona_para_cancelar) {
-                if (s->get_status() == StatusSolicitacao::ACEITA ||
-                    s->get_status() == StatusSolicitacao::PENDENTE ||
-                    s->get_status() == StatusSolicitacao::AGUARDANDO_RESPOSTA_PASSAGEIRO) {
-                    
-                    s->set_status(StatusSolicitacao::RECUSADA); // Status alterado para recusada
-                    _ger_usuarios->enviarNotificacao(s->get_passageiro(), "Sua solicitacao de carona para a carona ID " + (carona_para_cancelar ? std::to_string(carona_para_cancelar->get_id()) : "N/A") +
-                                     " de " + (carona_para_cancelar && carona_para_cancelar->get_motorista() ? carona_para_cancelar->get_motorista()->get_nome() : "Motorista Desconhecido") + " foi CANCELADA. Por favor, busque outra carona.");
-                    s->set_carona(nullptr); // Desvincula a solicitação da carona
+        if (_ger_solicitacoes) {
+            const std::vector<Solicitacao*>& todas_solicitacoes = _ger_solicitacoes->getSolicitacoes();
+            for (Solicitacao* s : todas_solicitacoes) {
+                if (s->get_carona() && s->get_carona() == carona_para_cancelar) {
+                    if (s->get_status() == StatusSolicitacao::ACEITA ||
+                        s->get_status() == StatusSolicitacao::PENDENTE ||
+                        s->get_status() == StatusSolicitacao::AGUARDANDO_RESPOSTA_PASSAGEIRO) {
+                        
+                        s->set_status(StatusSolicitacao::RECUSADA);
+                        _ger_usuarios->enviarNotificacao(s->get_passageiro(), "Sua solicitacao de carona para a carona ID " + (carona_para_cancelar ? std::to_string(carona_para_cancelar->get_id()) : "N/A") +
+                                         " de " + (carona_para_cancelar && carona_para_cancelar->get_motorista() ? carona_para_cancelar->get_motorista()->get_nome() : "Motorista Desconhecido") + " foi CANCELADA. Por favor, busque outra carona.");
+                        s->set_carona(nullptr);
+                    }
                 }
             }
+            _ger_solicitacoes->salvarDadosSolicitacoesPublico();
+        } else {
+            _terminal_io->exibirErro("Erro interno: Gerenciador de solicitacoes nao inicializado para cancelar carona.");
         }
-
-        _ger_solicitacoes->salvarDadosSolicitacoesPublico();
         salvarDadosCaronasPublico();
     }
 
@@ -445,4 +449,4 @@ namespace ufmg_carona {
         return _caronas;
     }
 
-} // namespace ufmg_carona
+}

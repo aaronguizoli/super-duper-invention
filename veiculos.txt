@@ -1,3 +1,0 @@
-12345678901;aaaaaa;aaaaaa;aaaaa;aaaaa;5
-10987654321;ABC1234;Fiat;Uno;Preto;4
-10987654321;DEF5678;VW;Gol;Branco;5
