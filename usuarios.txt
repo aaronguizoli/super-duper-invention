@@ -1,0 +1,4 @@
+00700700707;Gisele Santos;jhvgk;08/06/1997;kjnbhgyuioklmnbhui;231876hj;1;aluno;Arquitetura;0
+00900900909;Iara Mendes;dwew21;11/02/1999;dfdvuy63298diejhy8i;d232ewdfr23;1;aluno;Direito;0
+01601601616;Pedro Uchoa;"/Users/italoavelar/Downloads/super-duper-invention-main3 2/build/bin/app_carona";21/09/1986;"/Users/italoavelar/Downloads/super-duper-invention-main3 2/build/bin/app_carona";dwefbi2ge8wdh;1;funcionario;0;0
+01301301313;Mariana Rocha;31999899880;04/01/2001;mr@gmail.com;123;1;aluno;Odontologia;0
